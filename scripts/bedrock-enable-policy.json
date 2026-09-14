@@ -1,0 +1,18 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "EnableBedrockModels",
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:CreateFoundationModelAgreement",
+        "bedrock:ListFoundationModelAgreementOffers",
+        "bedrock:GetFoundationModelAvailability",
+        "aws-marketplace:Subscribe",
+        "aws-marketplace:ViewSubscriptions",
+        "aws-marketplace:Unsubscribe"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

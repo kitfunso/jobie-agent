@@ -96,6 +96,8 @@ The same run on Claude Haiku 4.5 also came back clean after six self-checks. Cla
 
 A key typed in the panel wins over `.env`. The Bedrock region comes from the panel, then `AWS_REGION`, then `us-east-1`. The model id box in the panel overrides the default.
 
+Bedrock enables a third-party model the first time you call it, but a Bedrock API key cannot accept the Marketplace agreement on its own: its IAM user has `AmazonBedrockLimitedAccess`, which lacks `bedrock:CreateFoundationModelAgreement`. If a model answers `AccessDeniedException`, attach `scripts/bedrock-enable-policy.json` to the key's IAM user as an inline policy, then run `python scripts/enable_model.py <model_id>` from the repo root. It accepts the offer, waits for the agreement, and makes one five-token call to prove it. The agreement costs nothing.
+
 Keys travel from the panel to the local server on 127.0.0.1 and go straight into the Strands model object for that request. The server writes no keys to disk. The extension stores what you type in `chrome.storage.local`, which is plaintext on your own machine. See Limitations.
 
 ## It never presses Submit

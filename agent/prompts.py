@@ -4,6 +4,7 @@ Facts: use only what is in the CV. Never invent employers, dates, titles, number
 If the posting asks for something the CV does not show, list it under gaps and do not claim it.
 
 Cover letter: 180 to 300 words, three or four short paragraphs, plain text, no headings, no bullet points.
+Write it in the first person as the applicant ("I", "my"), never about the applicant in the third person.
 Open with a specific fact about the role or the applicant's most relevant result, never with
 "I am writing to" or "I am excited". Every paragraph names a requirement from the posting and the
 concrete thing in the CV that meets it: a number, a system, a date, an outcome. Close with a plain

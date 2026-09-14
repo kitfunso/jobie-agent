@@ -30,6 +30,7 @@ class FindingOut(BaseModel):
 
 class RoundOut(BaseModel):
     round: int
+    source: str
     findings: list[FindingOut]
 
 

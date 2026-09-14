@@ -154,7 +154,8 @@ function renderRounds(rounds) {
     const details = document.createElement("details");
     details.className = "round";
     const summary = document.createElement("summary");
-    summary.textContent = "Round " + r.round + ": " + r.findings.length + " findings";
+    const label = r.source === "agent" ? "Agent self-check" : "Loop check";
+    summary.textContent = label + ", round " + r.round + ": " + r.findings.length + " findings";
     details.appendChild(summary);
     r.findings.forEach(f => {
       const div = document.createElement("div");

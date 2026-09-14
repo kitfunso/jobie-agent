@@ -6,7 +6,7 @@ from agent.writer import Round, TailorOutcome, TailorResult
 def fake_tailor(model, title, company, location, description, cv_text):
     return TailorOutcome(
         TailorResult(cv_markdown="# Keith So\n\n- Python", cover_letter="Short and clean.", changes=["x"], gaps=[]),
-        (Round(1, ()),),
+        (Round(1, "loop", ()),),
     )
 
 
@@ -29,7 +29,7 @@ def test_tailor_returns_files_and_rounds(monkeypatch, tmp_path):
     assert r.status_code == 200, r.text
     data = r.json()
     assert data["cover_letter"] == "Short and clean."
-    assert data["rounds"] == [{"round": 1, "findings": []}]
+    assert data["rounds"] == [{"round": 1, "source": "loop", "findings": []}]
     assert client.get(data["cv_pdf"]).status_code == 200
     assert client.get(data["letter_pdf"]).headers["content-type"] == "application/pdf"
 

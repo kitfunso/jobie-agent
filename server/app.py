@@ -57,7 +57,7 @@ def tailor_endpoint(req: TailorRequest) -> TailorResponse:
     log.info("tailored %s at %s: rounds=%d final_findings=%d", p.title, p.company, len(outcome.rounds), len(outcome.rounds[-1].findings))
     return TailorResponse(
         **outcome.result.model_dump(),
-        rounds=[RoundOut(round=r.round, findings=[asdict(f) for f in r.findings]) for r in outcome.rounds],
+        rounds=[RoundOut(round=r.round, source=r.source, findings=[asdict(f) for f in r.findings]) for r in outcome.rounds],
         cv_pdf=f"/files/{cv_name}", letter_pdf=f"/files/{letter_name}",
     )
 

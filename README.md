@@ -58,14 +58,29 @@ On top of the regex rules, `agent/slop.py` checks the shape of the text: em dash
 The checker runs in two layers:
 
 1. **Inside the agent.** `slop_check` is a Strands `@tool`. The system prompt tells the model to call it on the letter and on the CV before it answers, and to fix and re-check until both return zero findings.
-2. **Outside the agent.** `agent/writer.py` runs the same `check()` on the structured output the model returned. If anything remains, it sends the findings back as a rewrite prompt. Up to three rounds. The panel shows each round and its findings so you can see the draft getting cleaner.
+2. **Outside the agent.** `agent/writer.py` runs the same `check()` on the structured output the model returned. If anything remains, it sends the findings back as a rewrite prompt. Up to three rounds.
+
+The panel shows both layers. Each `slop_check` call the model made mid-turn appears as an "Agent self-check" row, read back from the Strands message history, and the outside pass appears as a "Loop check" row, so you can watch the draft getting cleaner.
 
 The model also gets a plain brief: facts from the CV only, list what the posting asks for that the CV does not show as a gap, 180 to 300 words for the letter, open with a specific fact and never with "I am writing to".
 
 ### A real run
 
-<!-- SMOKE_TRANSCRIPT: replaced by scripts/smoke.py output after the first real run -->
-Transcript pending the first real run. `python scripts/smoke.py bedrock` from the repo root prints one.
+`python -m scripts.smoke bedrock` from the repo root runs the loop once against `samples/cv.pdf` and `samples/posting.txt` (both git-ignored) and prints every check. One real CV, a senior data engineer posting, Claude Sonnet 4.6 on Bedrock:
+
+```
+model: global.anthropic.claude-sonnet-4-6
+round 1 agent: 2 findings ['banned word', 'em dash']
+round 1 agent: 3 findings ['banned word', 'banned word', 'em dash']
+round 1 agent: 0 findings []
+round 1 agent: 1 findings ['em dash']
+round 1 agent: 0 findings []
+round 1 loop: 0 findings []
+```
+
+The model called `slop_check` five times inside one turn, three of them with findings, and kept rewriting until the letter and the CV both came back clean. The outside check then found nothing, so the loop ended after one round. The letter opened on a shipped system and a number, stayed in the first person, and listed 11 posting requirements as gaps instead of claiming them.
+
+The same run on Claude Haiku 4.5 also came back clean after six self-checks. Claude Sonnet 5 returned `AccessDeniedException` on a fresh Bedrock account, so the default stays on Sonnet 4.6 until your account has access.
 
 ## Bring your own key
 

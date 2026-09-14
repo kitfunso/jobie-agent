@@ -202,16 +202,17 @@ function renderFillResults(filled, skipped) {
 
 async function onFill() {
   clearStatus();
-  if (!lastCvPdfPath || !lastLetterPdfPath) { showStatus("Tailor first to generate the CV and letter PDFs."); return; }
-  const cvPdf = await sendToBg({ type: "fetch_pdf", path: lastCvPdfPath });
-  if (!cvPdf.ok) { showStatus("Could not fetch the CV PDF: " + detailOf(cvPdf)); return; }
-  const letterPdf = await sendToBg({ type: "fetch_pdf", path: lastLetterPdfPath });
-  if (!letterPdf.ok) { showStatus("Could not fetch the letter PDF: " + detailOf(letterPdf)); return; }
-  const data = {
-    profile: collectProfile(),
-    cover_letter: $("letter-text").value,
-    files: [{ name: cvPdf.name, b64: cvPdf.b64 }, { name: letterPdf.name, b64: letterPdf.b64 }]
-  };
+  const files = [];
+  if (lastCvPdfPath && lastLetterPdfPath) {
+    const cvPdf = await sendToBg({ type: "fetch_pdf", path: lastCvPdfPath });
+    if (!cvPdf.ok) { showStatus("Could not fetch the CV PDF: " + detailOf(cvPdf)); return; }
+    const letterPdf = await sendToBg({ type: "fetch_pdf", path: lastLetterPdfPath });
+    if (!letterPdf.ok) { showStatus("Could not fetch the letter PDF: " + detailOf(letterPdf)); return; }
+    files.push({ name: cvPdf.name, b64: cvPdf.b64 }, { name: letterPdf.name, b64: letterPdf.b64 });
+  } else {
+    showStatus("No tailored PDFs yet, filling profile fields only.");
+  }
+  const data = { profile: collectProfile(), cover_letter: $("letter-text").value, files };
   const tab = await getActiveTab();
   const resp = await sendToTab(tab.id, { type: "fill", data });
   if (!resp || !resp.ok) { showStatus("Fill failed: " + detailOf(resp)); return; }

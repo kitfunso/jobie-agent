@@ -1,9 +1,12 @@
 // extension/content/beacon.js
 // A small fixed pill on Workday pages that opens the side panel; sessionStorage remembers a dismissal.
 (function () {
-  if (window.top !== window || document.getElementById("jobie-beacon")) return;
+  if (window.top !== window) return;
   if (typeof chrome === "undefined" || !chrome.runtime || !chrome.runtime.getURL) return;
   try { if (sessionStorage.getItem("jobie-beacon-dismissed")) return; } catch (e) { /* sandboxed page: show anyway */ }
+  // A pill left by a previous extension instance points at a dead runtime, so replace it.
+  const stale = document.getElementById("jobie-beacon");
+  if (stale) stale.remove();
 
   const host = document.createElement("div");
   host.id = "jobie-beacon";

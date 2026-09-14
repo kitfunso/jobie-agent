@@ -5,6 +5,7 @@ const WORKDAY = /^https:\/\/[^/]+\.(myworkdayjobs|myworkdaysite)\.com\//;
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+  reachOpenTabs();
 });
 
 // Toolbar badge marks Workday tabs so the user knows the panel has something to do here.
@@ -15,6 +16,21 @@ function markTab(tabId, url) {
 }
 chrome.tabs.onUpdated.addListener((tabId, info, tab) => { if (info.url || info.status === "complete") markTab(tabId, tab.url); });
 chrome.tabs.onActivated.addListener(({ tabId }) => chrome.tabs.get(tabId).then(t => markTab(tabId, t.url)).catch(() => {}));
+
+function ping(tabId) {
+  return new Promise(resolve => chrome.tabs.sendMessage(tabId, { type: "ping" }, r => resolve(!chrome.runtime.lastError && r && r.ok)));
+}
+
+// Manifest content scripts only run at page load, so tabs open before an install or reload get them here.
+async function reachOpenTabs() {
+  const { matches, js } = chrome.runtime.getManifest().content_scripts[0];
+  const tabs = await chrome.tabs.query({ url: matches });
+  for (const tab of tabs) {
+    markTab(tab.id, tab.url);
+    if (await ping(tab.id)) continue;
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: js }).catch(e => console.warn("inject failed", tab.url, e));
+  }
+}
 
 async function api(method, path, body) {
   const init = { method, headers: {} };

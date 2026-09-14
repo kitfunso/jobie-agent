@@ -71,6 +71,7 @@ Extension messages (all `chrome.runtime.sendMessage` / `chrome.tabs.sendMessage`
 |---|---|---|
 | side panel → service worker | `{type:"api", method, path, body}` | `{ok, status, data}` |
 | side panel → service worker | `{type:"fetch_pdf", path}` | `{ok, name, b64}` |
+| side panel → service worker | `{type:"cv_parse", b64, name}` | `{ok, status, data:{text}}` |
 | side panel → content script | `{type:"scrape"}` | `{ok, posting}` |
 | side panel → content script | `{type:"fill", data}` | `{ok, filled:[], skipped:[]}` |
 
@@ -528,7 +529,7 @@ Expected: `3 passed` (2 if the CV sample is absent, 1 skipped).
 
 ### Task 3: Provider factory (bring your own key)
 
-Verified against the installed SDK: `AnthropicModel(client_args={"api_key": ...}, model_id=..., max_tokens=...)` where `max_tokens` is required; `OpenAIModel(client_args={"api_key": ...}, model_id=...)`; `BedrockModel(model_id=..., region_name=..., api_key=...)` where `api_key` sets the bearer header. Bedrock default model id in the SDK is `global.anthropic.claude-sonnet-4-6`, default region is `AWS_REGION` or `us-west-2`.
+Verified against the installed SDK: `AnthropicModel(client_args={"api_key": ...}, model_id=..., max_tokens=...)` where `max_tokens` is required; `OpenAIModel(client_args={"api_key": ...}, model_id=...)`; `BedrockModel(model_id=..., region_name=..., api_key=...)` where `api_key` sets the bearer header. Bedrock default model id in the SDK is `global.anthropic.claude-sonnet-4-6`. The SDK's own region default is `us-west-2`; this project defaults to `us-east-1` instead because the env template sets it and the user's key is issued there. For Bedrock the key is optional: with no key and no `AWS_BEARER_TOKEN_BEDROCK`, boto3's normal credential chain (IAM, SSO, `aws configure`) applies.
 
 **Files:**
 - Create: `agent/providers.py`
@@ -570,6 +571,12 @@ def test_missing_key_raises(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     with pytest.raises(ValueError):
         build_model(ProviderConfig(name="anthropic"))
+
+
+def test_bedrock_without_key_uses_boto_chain(monkeypatch):
+    monkeypatch.delenv("AWS_BEARER_TOKEN_BEDROCK", raising=False)
+    model = build_model(ProviderConfig(name="bedrock"))
+    assert type(model).__name__ == "BedrockModel"
 ```
 
 **Step 2: Run to verify they fail**
@@ -609,7 +616,7 @@ def build_model(cfg: ProviderConfig) -> Model:
     if cfg.name not in DEFAULT_MODEL_IDS:
         raise ValueError(f"unknown provider '{cfg.name}'; choose one of {sorted(DEFAULT_MODEL_IDS)}")
     key = cfg.api_key or os.environ.get(ENV_KEYS[cfg.name], "")
-    if not key:
+    if not key and cfg.name != "bedrock":
         raise ValueError(f"no API key for {cfg.name}: paste one in the extension or set {ENV_KEYS[cfg.name]} in .env")
     model_id = cfg.model_id or DEFAULT_MODEL_IDS[cfg.name]
     if cfg.name == "anthropic":
@@ -620,7 +627,7 @@ def build_model(cfg: ProviderConfig) -> Model:
         return OpenAIModel(client_args={"api_key": key}, model_id=model_id)
     from strands.models import BedrockModel
     region = cfg.region or os.environ.get("AWS_REGION", "us-east-1")
-    return BedrockModel(model_id=model_id, region_name=region, api_key=key)
+    return BedrockModel(model_id=model_id, region_name=region, api_key=key or None)
 ```
 
 If `get_config()` is not the accessor name on the installed model classes, grep `def get_config` under `.venv/Lib/site-packages/strands/models/` and use what is there; do not change the test's intent.
@@ -628,7 +635,7 @@ If `get_config()` is not the accessor name on the installed model classes, grep 
 **Step 4: Run tests**
 
 Run: `.venv\Scripts\python.exe -m pytest tests/test_providers.py -q`
-Expected: `5 passed`
+Expected: `6 passed`
 
 **Step 5: Commit**
 
@@ -1146,7 +1153,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 4. `#cv`: file input (PDF) → sends `cv_parse` → stores `cv_text` and `cv_file {name,b64}`; shows character count.
 5. `#posting`: "Read this posting" button → `chrome.tabs.sendMessage(activeTab, {type:"scrape"})` → shows title, company, location, description length. Editable textarea fallback for non-Workday pages.
 6. `#tailor`: "Tailor CV and write letter" button → `api POST /tailor` → shows rounds as "Round 1: 4 findings → Round 2: 0 findings" with each finding as `rule: "quote"` in a collapsible list; shows the letter in a textarea (editable), the CV markdown in a second textarea, `changes` and `gaps` lists, two "Download" links pointing at the server files.
-7. `#apply`: "Fill this page" button → `chrome.tabs.sendMessage(activeTab, {type:"fill", data})` → shows filled and skipped field names. A fixed line under the button: "jobie-agent never presses Submit. Review every page, then submit yourself."
+7. `#apply`: "Fill this page" button. First it sends `{type:"fetch_pdf", path}` to the service worker for `cv_pdf` and then for `letter_pdf`, collecting `[{name, b64}]`; only then it sends `chrome.tabs.sendMessage(activeTab, {type:"fill", data})` with `data = {profile, cover_letter, files}` and shows filled and skipped field names. If either fetch fails, the panel says which file and does not send `fill`. A fixed line under the button: "jobie-agent never presses Submit. Review every page, then submit yourself."
 
 `sidepanel.js` responsibilities: load and save storage, wire buttons, render results. Keep it under 250 lines; no framework. Every failure path shows the server's `detail` string in `#status` in plain words.
 

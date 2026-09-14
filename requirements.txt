@@ -1,0 +1,9 @@
+strands-agents[anthropic,openai]>=1.55,<2
+strands-agents-tools>=0.8
+fastapi>=0.115
+uvicorn>=0.30
+pydantic>=2
+pypdf>=6
+reportlab>=4
+python-dotenv>=1
+python-multipart>=0.0.9

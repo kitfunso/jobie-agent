@@ -10,12 +10,12 @@
   "side_panel": {"default_path": "sidepanel.html"},
   "action": {"default_title": "jobie-agent", "default_icon": {"16": "icons/icon-16.png", "32": "icons/icon-32.png"}},
   "content_scripts": [{
-    "matches": ["https://*.myworkdayjobs.com/*", "https://*.myworkdaysite.com/*", "file:///*/extension/test/*"],
+    "matches": ["https://*.myworkdayjobs.com/*", "https://*.myworkdaysite.com/*"],
     "js": ["content/fill.js", "content/workday-selectors.js", "content/workday.js", "content/generic.js", "content/main.js", "content/beacon.js"],
     "run_at": "document_idle"
   }],
   "web_accessible_resources": [{
     "resources": ["icons/icon-48.png"],
-    "matches": ["https://*.myworkdayjobs.com/*", "https://*.myworkdaysite.com/*", "file:///*"]
+    "matches": ["https://*.myworkdayjobs.com/*", "https://*.myworkdaysite.com/*"]
   }]
 }

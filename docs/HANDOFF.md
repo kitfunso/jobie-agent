@@ -36,13 +36,10 @@ Tests: `.venv\Scripts\python.exe -m pytest tests -q`.
 
 ## Left before freeze
 
-1. `extension/manifest.json`: remove the `file:///*/extension/test/*` entry from `content_scripts` matches and the `file:///*` entry from `web_accessible_resources`. Tests use the fake page through Playwright, not the manifest match.
-2. Tag `v0.1.0` and push the tag.
-3. Task 9: a real application on the EDF posting with Run to review, fixing form selectors as they show up. Posting-page scrape is verified on edftrading.wd1; form pages are not.
-4. Task 11: video under 5 minutes, unlisted YouTube, Devpost form. Script in `docs/demo-script.md`, text in `docs/devpost.md`.
-5. The human-voice brief from `d4930dd` has not been confirmed on a real run yet. Read the next letter with fresh eyes.
+1. Task 9: a real application on the EDF posting with Run to review, fixing form selectors as they show up. Posting-page scrape is verified on edftrading.wd1; form pages are not.
+2. Task 11: video under 5 minutes, unlisted YouTube, Devpost form. Script in `docs/demo-script.md`, text in `docs/devpost.md`.
+3. The human-voice brief from `d4930dd` has not been confirmed on a real run yet. Read the next letter with fresh eyes.
 
 ## After the hackathon
 
 - Rotate the Bedrock API key in the console. It was pasted in a chat once.
-- The run button has an `is-running` beam class in the CSS that the script never sets. Wire it or drop it.

@@ -354,6 +354,15 @@ function logRun(text) {
 
 // Fills known pages and presses Save and Continue until the Review page or a page that needs the user. Never Submit.
 async function onRunToReview() {
+  const btn = $("run-btn");
+  btn.disabled = true;
+  btn.classList.add("is-running");
+  try { await runToReview(); }
+  finally { btn.disabled = false; btn.classList.remove("is-running"); }
+}
+
+// Every exit below is an early return, so the button state lives in the wrapper above.
+async function runToReview() {
   clearStatus();
   $("run-log").textContent = "";
   runStopped = false;

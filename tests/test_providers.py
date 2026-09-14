@@ -18,7 +18,7 @@ def test_bedrock_reads_env_when_key_empty(monkeypatch):
     monkeypatch.setenv("AWS_REGION", "us-east-1")
     model = build_model(ProviderConfig(name="bedrock"))
     assert type(model).__name__ == "BedrockModel"
-    assert model.get_config()["model_id"] == "global.anthropic.claude-sonnet-5"
+    assert model.get_config()["model_id"] == "global.anthropic.claude-sonnet-4-6"
 
 
 def test_unknown_provider_raises():

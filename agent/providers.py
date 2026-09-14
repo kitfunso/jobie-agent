@@ -9,7 +9,7 @@ from strands.models import Model
 DEFAULT_MODEL_IDS = {
     "anthropic": "claude-sonnet-5",
     "openai": "gpt-4o",
-    "bedrock": "global.anthropic.claude-sonnet-5",
+    "bedrock": "global.anthropic.claude-sonnet-4-6",
 }
 ENV_KEYS = {"anthropic": "ANTHROPIC_API_KEY", "openai": "OPENAI_API_KEY", "bedrock": "AWS_BEARER_TOKEN_BEDROCK"}
 

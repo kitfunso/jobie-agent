@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 import server.app as app_module
 from agent.writer import Round, TailorOutcome, TailorResult
@@ -49,6 +50,19 @@ def test_tailor_empty_cv_is_400_before_any_model_call(monkeypatch):
     r = client.post("/tailor", json=body)
     assert r.status_code == 400
     assert "Upload your CV" in r.json()["detail"]
+
+
+def test_tailor_model_failure_is_502_with_the_provider_message(monkeypatch):
+    def boom(*args):
+        raise RuntimeError("anthropic.claude-sonnet-5 is not available for this account")
+    monkeypatch.setattr(app_module, "tailor", boom)
+    monkeypatch.setattr(app_module, "build_model", lambda cfg: object())
+    client = TestClient(app_module.app)
+    body = {"posting": {"title": "Analyst", "company": "Acme", "location": "", "description": "Python", "url": ""},
+            "cv_text": "Keith So.", "provider": {"name": "bedrock", "api_key": "", "model_id": "", "region": ""}}
+    r = client.post("/tailor", json=body)
+    assert r.status_code == 502
+    assert "not available for this account" in r.json()["detail"]
 
 
 def test_files_rejects_traversal():

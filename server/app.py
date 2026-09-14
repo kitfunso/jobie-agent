@@ -51,7 +51,11 @@ def tailor_endpoint(req: TailorRequest) -> TailorResponse:
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
     p = req.posting
-    outcome = tailor(model, p.title, p.company, p.location, p.description, req.cv_text)
+    try:
+        outcome = tailor(model, p.title, p.company, p.location, p.description, req.cv_text)
+    except Exception as exc:
+        log.exception("tailor failed for %s at %s", p.title, p.company)
+        raise HTTPException(502, f"The model call failed: {exc}") from exc
     job_id = uuid.uuid4().hex[:8]
     cv_name, letter_name = f"{job_id}-cv.pdf", f"{job_id}-letter.pdf"
     render_markdown_pdf(outcome.result.cv_markdown, OUT_DIR / cv_name)

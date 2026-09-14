@@ -89,8 +89,9 @@ input[type="file"]{border:1px dashed var(--hairline);border-radius:var(--r-input
 .btn-secondary{background:transparent;color:var(--accent);border-color:var(--hairline)}
 .btn-text{background:none;border:none;color:var(--muted);padding:0;text-decoration:underline;min-height:auto;border-radius:0}
 .btn-text--danger{color:var(--error)}
-#run-btn{width:100%;position:relative;margin-top:var(--sp-3)}
-#run-btn.is-running::before{
+#run-btn{width:100%;margin-top:var(--sp-3)}
+.btn.is-running{position:relative}
+.btn.is-running::before{
   content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;
   background:conic-gradient(from var(--a), transparent 70%, var(--accent));
   -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
@@ -106,6 +107,10 @@ input[type="file"]{border:1px dashed var(--hairline);border-radius:var(--r-input
 .posting-summary{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:var(--fs-1);color:var(--muted);margin:var(--sp-2) 0}
 .posting-summary[hidden]{display:none}
 #tailor-btn{margin-top:var(--sp-3)}
+.tailor-progress{display:flex;align-items:center;gap:var(--sp-2);font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:var(--fs-1);color:var(--muted);margin:var(--sp-2) 0 0}
+.tailor-progress[hidden]{display:none}
+.tailor-progress::before{content:"";width:7px;height:7px;flex-shrink:0;border-radius:50%;background:var(--accent);animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.2}}
 .pdf-links{display:flex;gap:var(--sp-5)}
 
 /* collapsible plates: posting details, output (letter/CV/checks) */

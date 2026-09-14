@@ -56,3 +56,4 @@
 | 2026-09-14 | Rounded boxes: 6px inputs and buttons, 8px plates | User instruction after seeing v1. |
 | 2026-09-14 | Logo: upright stacked pages with a dot (three.js mock l3), exported as PNG at 16/32/48/128 | User pick from five three.js marks. Three.js is not bundled; the extension ships only the PNGs. |
 | 2026-09-14 | Status banner sits above the footer, outside the scroll area; buttons that run for long show a busy label and disable | A banner under the header scrolled out of view once the user was at stage 2 or 3, so failures and stops looked like dead buttons. |
+| 2026-09-14 | Tailor run: border beam on the button plus a mono row under it with a pulsing accent dot, an elapsed clock and one sentence | The server sends no progress events for the 30 to 90 second call, so the clock is the only honest live signal; no invented step list. The beam class is shared by primary buttons. |

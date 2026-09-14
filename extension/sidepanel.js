@@ -1,7 +1,7 @@
 // extension/sidepanel.js
 const SERVER = "http://127.0.0.1:8765";
 const MODEL_DEFAULTS = {
-  bedrock: "global.anthropic.claude-sonnet-5",
+  bedrock: "global.anthropic.claude-sonnet-4-6",
   anthropic: "claude-sonnet-5",
   openai: "gpt-4o"
 };
@@ -195,6 +195,32 @@ function renderList(id, items) {
 }
 
 const TAILOR_LABEL = "Tailor CV and write letter";
+let tailorTicker = null;
+
+function formatElapsed(seconds) {
+  return Math.floor(seconds / 60) + ":" + String(seconds % 60).padStart(2, "0");
+}
+
+// One request and no progress events from the server, so the clock is the only honest live signal.
+function startTailorProgress() {
+  const el = $("tailor-progress");
+  const started = Date.now();
+  const tick = () => {
+    const s = Math.floor((Date.now() - started) / 1000);
+    el.textContent = formatElapsed(s) + " elapsed. Drafting the letter and CV, then checking both for AI-writing patterns.";
+  };
+  tick();
+  el.hidden = false;
+  tailorTicker = setInterval(tick, 1000);
+}
+
+function stopTailorProgress() {
+  clearInterval(tailorTicker);
+  tailorTicker = null;
+  const el = $("tailor-progress");
+  el.hidden = true;
+  el.textContent = "";
+}
 
 // The previous run's output stays on screen otherwise, which reads as "the button did nothing".
 async function clearTailorOutput() {
@@ -225,8 +251,10 @@ async function onTailor() {
   };
   const btn = $("tailor-btn");
   btn.disabled = true;
+  btn.classList.add("is-running");
   btn.textContent = "Tailoring, 30 to 90 seconds";
   await clearTailorOutput();
+  startTailorProgress();
   setShaderSpeed(0.8);
   try {
     const resp = await sendToBg({ type: "api", method: "POST", path: "/tailor", body });
@@ -243,7 +271,9 @@ async function onTailor() {
     await chrome.storage.session.set({ tailored });
     return true;
   } finally {
+    stopTailorProgress();
     btn.disabled = false;
+    btn.classList.remove("is-running");
     btn.textContent = TAILOR_LABEL;
     setShaderSpeed(0.25);
   }

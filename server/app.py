@@ -12,11 +12,12 @@ from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
+from agent.answers import answer_fields, make_answerer
 from agent.cv import extract_text
 from agent.pdf import render_markdown_pdf
 from agent.providers import ProviderConfig, build_model
 from agent.writer import tailor
-from server.schemas import RoundOut, TailorRequest, TailorResponse
+from server.schemas import AnswerRequest, AnswerResponse, RoundOut, TailorRequest, TailorResponse
 
 load_dotenv()
 log = logging.getLogger("jobie")
@@ -68,6 +69,23 @@ def tailor_endpoint(req: TailorRequest) -> TailorResponse:
         rounds=[RoundOut(round=r.round, source=r.source, findings=[asdict(f) for f in r.findings]) for r in outcome.rounds],
         cv_pdf=f"/files/{cv_name}", letter_pdf=f"/files/{letter_name}",
     )
+
+
+@app.post("/answer", response_model=AnswerResponse)
+def answer_endpoint(req: AnswerRequest) -> AnswerResponse:
+    if not req.fields:
+        return AnswerResponse(answers=[])
+    try:
+        model = build_model(ProviderConfig(**req.provider.model_dump()))
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    try:
+        answers = answer_fields(make_answerer(model), req.fields, req.profile, req.cv_text, req.posting_title, req.company)
+    except Exception as exc:
+        log.exception("answer failed for %d fields at %s", len(req.fields), req.company)
+        raise HTTPException(502, f"The model call failed: {exc}") from exc
+    log.info("answered %s", [(a.id, a.value is not None) for a in answers])
+    return AnswerResponse(answers=answers)
 
 
 @app.get("/files/{name}")

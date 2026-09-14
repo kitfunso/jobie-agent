@@ -41,11 +41,13 @@ def page(browser):
     pg.close()
 
 
-def load_step(page, step: str | None = None) -> None:
-    # isPosting() requires a "/job/" URL segment (real Workday posting URLs look like /job/{slug}_{reqId});
-    # the file:// fixture has no such path segment, so the query string simulates it for the posting case.
-    url = FAKE_PAGE_URL + (f"?step={step}" if step else "?posting=/job/123456")
-    page.goto(url)
+def load_step(page, step: str | None = None, posting: bool = False) -> None:
+    # Real Workday keeps the posting's /job/{slug}_{reqId} path on every apply page; the file:// fixture has no such
+    # segment, so the query string supplies it for the posting case and, with posting=True, for an apply page too.
+    query = [f"step={step}"] if step else []
+    if posting or not step:
+        query.append("posting=/job/123456")
+    page.goto(FAKE_PAGE_URL + "?" + "&".join(query))
     for name in ["fill.js", "workday-selectors.js", "workday.js", "generic.js"]:
         page.add_script_tag(content=(CONTENT_DIR / name).read_text(encoding="utf-8"))
     # main.js reads chrome.runtime; the fake page has no extension host, so stub the API and keep the listener.
@@ -86,15 +88,59 @@ def test_fill_info_step(page):
         "async (data) => await Workday.fill(data)",
         {"profile": PROFILE, "cover_letter": "", "files": []},
     )
-    assert page.input_value('input[data-automation-id="legalNameSection_firstName"]') == "Keith"
-    assert page.input_value('input[data-automation-id="legalNameSection_lastName"]') == "So"
-    assert page.input_value('input[data-automation-id="addressSection_city"]') == "London"
-    assert page.input_value('input[data-automation-id="phone-number"]') == "07700900000"
-    country_text = page.evaluate('document.querySelector(\'[data-automation-id="addressSection_countryRegion"]\').textContent')
-    assert "United Kingdom" in country_text
-    assert {"first name", "last name", "city", "phone", "country"}.issubset(set(result["filled"]))
+    assert page.input_value("#firstName") == "Keith"
+    assert page.input_value("#lastName") == "So"
+    assert page.input_value("#city") == "London"
+    assert page.input_value("#phoneNumber") == "07700900000"
+    assert page.text_content("#country") == "United Kingdom"
+    assert page.text_content("#phoneType") == "Mobile"
+    chip = page.text_content('[data-automation-id="formField-countryPhoneCode"] [data-automation-id="selectedItem"]')
+    assert chip == "United Kingdom (+44)"
+    assert {"first name", "last name", "city", "phone", "country", "phone type", "country phone code"}.issubset(set(result["filled"]))
     # fake page has no email input on this step, so the fill skips it; not a resume/files skip on this step.
     assert any("how did you hear" in s for s in result["skipped"])
+    # the one required field the profile cannot answer is what the panel reports before it presses Save and Continue
+    assert page.evaluate("Workday.pageInfo().unanswered") == ["How Did You Hear About Us?"]
+
+
+def test_apply_pages_are_told_from_the_posting_by_the_progress_bar(page):
+    load_step(page, "questions", posting=True)
+    assert page.evaluate("Workday.isPosting()") is False
+    assert page.evaluate("Workday.isApplication()") is True
+    info = page.evaluate("Workday.pageInfo()")
+    assert info["step"] == "questions"
+    assert info["stepName"] == "Application Questions"
+    assert info["unanswered"] == ["Years of experience", "Right to work in the UK", "Have you worked here before?", "I agree to the privacy notice"]
+
+
+def test_sign_in_page_is_its_own_step(page):
+    load_step(page, "signin", posting=True)
+    assert page.evaluate("Workday.isPosting()") is False
+    assert page.evaluate("Workday.pageInfo().step") == "signIn"
+
+
+def test_form_fields_and_apply_answers_on_the_questions_page(page):
+    load_step(page, "questions", posting=True)
+    fields = page.evaluate("async () => await Workday.formFields()")
+    by_id = {f["id"]: f for f in fields}
+    assert by_id["rightToWork"] == {"id": "rightToWork", "label": "Right to work in the UK", "kind": "dropdown",
+                                    "required": True, "options": ["Yes", "No"], "value": ""}
+    assert by_id["previousWorker"]["kind"] == "radio" and by_id["previousWorker"]["options"] == ["Yes", "No"]
+    assert by_id["consent"]["kind"] == "checkbox"
+    assert by_id["notice"]["required"] is False
+    # reading a dropdown's options opens its list; it must be closed again before anything else is clicked
+    assert page.evaluate('document.querySelectorAll("ul[role=listbox]").length') == 0
+    answers = [{"id": "yearsExperience", "value": "5"}, {"id": "rightToWork", "value": "Yes"},
+               {"id": "previousWorker", "value": "No"}, {"id": "consent", "value": "Yes"},
+               {"id": "notice", "value": None}, {"id": "nope", "value": "x"}]
+    result = page.evaluate("async (a) => await Workday.applyAnswers(a)", answers)
+    assert page.input_value("#yearsExperience") == "5"
+    assert page.text_content("#rightToWork") == "Yes"
+    assert page.is_checked("#previousWorkerNo")
+    assert page.is_checked("#consent")
+    assert page.evaluate("Workday.unansweredRequired()") == []
+    assert set(result["filled"]) == {"Years of experience", "Right to work in the UK", "Have you worked here before?", "I agree to the privacy notice"}
+    assert any("nope" in s for s in result["skipped"])
 
 
 def test_fill_experience_step(page, tmp_path):
@@ -152,6 +198,6 @@ def test_generic_fill(page):
     has_labels = page.evaluate('!!document.querySelector(\'label[for="firstName"]\')')
     if has_labels:
         assert page.input_value("#firstName") == "Keith"
-        assert any("first name" in s for s in result["filled"])
+        assert any("given name" in s for s in result["filled"])
     else:
         assert result["ok"] is True

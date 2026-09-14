@@ -1,4 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from agent.answers import Answer, FormField
 
 
 class Posting(BaseModel):
@@ -42,3 +44,16 @@ class TailorResponse(BaseModel):
     rounds: list[RoundOut]
     cv_pdf: str
     letter_pdf: str
+
+
+class AnswerRequest(BaseModel):
+    fields: list[FormField]
+    profile: dict[str, str] = Field(default_factory=dict)
+    cv_text: str = ""
+    posting_title: str = ""
+    company: str = ""
+    provider: Provider
+
+
+class AnswerResponse(BaseModel):
+    answers: list[Answer]

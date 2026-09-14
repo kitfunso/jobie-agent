@@ -1,13 +1,24 @@
 // extension/content/fill.js
 const Fill = (() => {
   // React caches the previous value on the element; resetting it forces the input event to register.
-  function setValue(el, value) {
+  function type(el, value) {
     const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
     if (el._valueTracker) el._valueTracker.setValue("");
     Object.getOwnPropertyDescriptor(proto, "value").set.call(el, value);
     el.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  // Search boxes keep their popup open only while focused, so they get type() alone and no blur.
+  function setValue(el, value) {
+    type(el, value);
     el.dispatchEvent(new Event("change", { bubbles: true }));
     el.dispatchEvent(new Event("blur", { bubbles: true }));
+  }
+
+  function pressEnter(el) {
+    for (const kind of ["keydown", "keypress", "keyup"]) {
+      el.dispatchEvent(new KeyboardEvent(kind, { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true }));
+    }
   }
 
   function b64ToFile(b64, name, type = "application/pdf") {
@@ -37,5 +48,5 @@ const Fill = (() => {
     return (lab?.textContent || el.getAttribute("aria-label") || el.getAttribute("placeholder") || "").trim().toLowerCase();
   }
 
-  return { setValue, b64ToFile, setFiles, sleep, waitFor, labelFor };
+  return { type, setValue, pressEnter, b64ToFile, setFiles, sleep, waitFor, labelFor };
 })();

@@ -2,7 +2,9 @@
 const Generic = (() => {
   const LABELS = {
     "first name": "first_name",
+    "given name": "first_name",
     "last name": "last_name",
+    "family name": "last_name",
     "email": "email",
     "phone": "phone",
     "linkedin": "linkedin",

@@ -106,8 +106,13 @@ async function saveSettings() {
 function collectProfile() {
   return {
     first_name: $("first-name").value, last_name: $("last-name").value, email: $("email").value,
-    phone: $("phone").value, country: $("country").value, city: $("city").value, linkedin: $("linkedin").value
+    phone: $("phone").value, country: $("country").value, city: $("city").value, linkedin: $("linkedin").value,
+    notes: $("notes").value
   };
+}
+
+function providerOf(settings) {
+  return { name: settings.name || "bedrock", api_key: settings.api_key || "", model_id: settings.model_id || "", region: settings.region || "" };
 }
 
 function applyProfile(profile) {
@@ -118,6 +123,7 @@ function applyProfile(profile) {
   $("country").value = profile.country || "";
   $("city").value = profile.city || "";
   $("linkedin").value = profile.linkedin || "";
+  $("notes").value = profile.notes || "";
 }
 
 async function saveProfile() {
@@ -245,7 +251,7 @@ async function onTailor() {
       location: $("posting-location").value, description: $("posting-description").value, url: lastPostingUrl
     },
     cv_text: store.cv_text,
-    provider: { name: settings.name || "bedrock", api_key: settings.api_key || "", model_id: settings.model_id || "", region: settings.region || "" }
+    provider: providerOf(settings)
   };
   const btn = $("tailor-btn");
   btn.disabled = true;
@@ -320,6 +326,39 @@ async function onFill() {
   const resp = await sendToTab(tab.id, { type: "fill", data });
   if (!resp || !resp.ok) { showStatus("Fill failed: " + detailOf(resp)); return; }
   renderFillResults(resp.filled, resp.skipped);
+  const agent = await answerRemaining(tab);
+  renderFillResults(resp.filled.concat(agent.filled), resp.skipped.concat(agent.skipped));
+  if (agent.left.length) showStatus("Required fields still empty: " + agent.left.join("; ") + ". Answer these on the page yourself.");
+}
+
+function unansweredOn(info) {
+  return (info && info.unanswered) || [];
+}
+
+// Required fields the profile fill left empty go to the agent, which answers from the profile, notes and CV or says why not.
+async function answerRemaining(tab) {
+  const none = { left: [], filled: [], skipped: [] };
+  const left = unansweredOn(await pageInfo(tab.id));
+  if (!left.length) return none;
+  const store = await chrome.storage.local.get(["settings", "cv_text"]);
+  const fields = await sendToTab(tab.id, { type: "form_fields" });
+  if (!fields || !fields.ok) { logRun("Could not read the form fields: " + detailOf(fields)); return { ...none, left }; }
+  logRun("Asking the agent about " + left.length + " required field" + (left.length === 1 ? "" : "s") + " (spends tokens)");
+  const body = { fields: fields.fields, profile: collectProfile(), cv_text: store.cv_text || "", posting_title: $("posting-title").value,
+                 company: $("posting-company").value, provider: providerOf(store.settings || {}) };
+  const resp = await sendToBg({ type: "api", method: "POST", path: "/answer", body });
+  if (!resp || !resp.ok) { logRun("The agent could not answer: " + detailOf(resp)); return { ...none, left }; }
+  const answers = resp.data.answers || [];
+  answers.filter(a => a.value === null && left.includes(fieldLabel(fields.fields, a.id))).forEach(a => logRun("Left blank " + fieldLabel(fields.fields, a.id) + ": " + a.reason));
+  const applied = await sendToTab(tab.id, { type: "apply_answers", answers });
+  if (!applied || !applied.ok) { logRun("Could not apply the answers: " + detailOf(applied)); return { ...none, left }; }
+  if (applied.filled.length) logRun("Agent answered: " + applied.filled.join(", "));
+  return { left: unansweredOn(await pageInfo(tab.id)), filled: applied.filled.map(f => f + " (agent)"), skipped: applied.skipped };
+}
+
+function fieldLabel(fields, id) {
+  const field = fields.find(f => f.id === id);
+  return field ? field.label : id;
 }
 
 async function pageInfo(tabId) {
@@ -380,7 +419,8 @@ async function runToReview() {
     if (runStopped) { showStatus("Stopped."); setShaderSpeed(0.25); return; }
     const info = await pageInfo(tab.id);
     if (!info) { showStatus("Could not reach this page."); setShaderSpeed(0.25); return; }
-    if (info.posting) { showStatus("This is the posting page. Click Apply on the page, sign in, then click Run to review on the first form page."); setShaderSpeed(0.25); return; }
+    if (info.posting) { showStatus("This is the posting page. Click Apply, choose Apply Manually, sign in, then click Run to review on the My Information page."); setShaderSpeed(0.25); return; }
+    if (info.step === "signIn") { showStatus("Sign in to this Workday account on the page, then click Run to review again."); setShaderSpeed(0.25); return; }
     if (info.step === "review") { logRun("Review page reached."); showStatus("Review page. Read it through and press Submit yourself."); setShaderSpeed(0); return; }
     if (info.step === "unknown" && page > 1) { showStatus("Stopped at a page I do not recognise. Fill it by hand, then click Run to review again."); setShaderSpeed(0.25); return; }
     if (info.step !== "unknown") {
@@ -388,6 +428,9 @@ async function runToReview() {
       if (!fill || !fill.ok) { showStatus("Fill failed: " + detailOf(fill)); setShaderSpeed(0.25); return; }
       logRun(info.step + ": filled " + fill.filled.length + ", skipped " + fill.skipped.length);
       renderFillResults(fill.filled, fill.skipped);
+      const agent = await answerRemaining(tab);
+      if (agent.filled.length || agent.skipped.length) renderFillResults(fill.filled.concat(agent.filled), fill.skipped.concat(agent.skipped));
+      if (agent.left.length) { showStatus("Workday still needs: " + agent.left.join("; ") + ". Answer these on the page, then click Run to review again."); setShaderSpeed(0.25); return; }
     }
     const adv = await sendToTab(tab.id, { type: "advance" });
     if (!adv || !adv.ok) { showStatus("Stopped: " + (adv && adv.reason ? adv.reason : detailOf(adv))); setShaderSpeed(0.25); return; }

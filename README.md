@@ -22,13 +22,13 @@ Then in Chrome: open `chrome://extensions`, turn on **Developer mode**, click **
 In the panel:
 
 1. Click the **1 Set up once** row to open it. Pick a provider under **Settings** and click **Save**. Leave the key blank to use the one in `.env`.
-2. Fill in **Profile** and click **Save**.
+2. Fill in **Profile**. Under **Notes for application questions** add the facts your CV does not hold: how you find jobs, right to work, notice period, employers you have worked for before. Click **Save**.
 3. Upload your CV as a PDF under **CV**. It needs a text layer, so a scanned image will be rejected.
 4. Open a Workday posting and click **Read this posting**. Edit the fields if the scrape got something wrong.
 5. Click **Tailor CV and write letter**. This takes 30 to 90 seconds. Read the rounds, the letter, the CV, the changes and the gaps.
-6. Click **Apply** on the posting yourself and sign in. On the first form page click **Run to review**. It fills each page, presses Save and Continue, and stops on the Review page, on a Workday validation error, or on a page it does not recognise. Fix that page by hand and click Run to review again. **Fill this page** still fills one page without moving on.
+6. Click **Apply** on the posting yourself, choose **Apply Manually** and sign in. On the My Information page click **Run to review**. On each page it fills what the profile covers, then sends the fields still empty to the agent, which answers from your profile, notes and CV and leaves blank what they do not say. It presses Save and Continue and stops on the Review page, on a Workday validation error, on a required field it could not answer (it lists them), or on a page it does not recognise. Fix that page by hand and click Run to review again. **Fill this page** still fills one page without moving on.
 
-Steps 1 to 3 are one-time. Profile and CV stay in the extension's storage, so the next application is steps 4 to 6. Tailoring is the only step that spends tokens, and Run to review runs it for you when there is no tailored output yet for the posting you read.
+Steps 1 to 3 are one-time. Profile and CV stay in the extension's storage, so the next application is steps 4 to 6. Tailoring and the questions your profile cannot answer are the only steps that spend tokens, and Run to review runs the tailoring for you when there is no tailored output yet for the posting you read.
 
 Each numbered stage collapses when you click its heading, and the panel remembers which ones you left open. Stage 1 folds to a one-line row once Settings, Profile and CV are all saved. The posting fields and the tailored output sit behind **Posting details** and **Letter and CV** so the two buttons you use most stay on screen.
 
@@ -102,26 +102,32 @@ Keys travel from the panel to the local server on 127.0.0.1 and go straight into
 
 ## It never presses Submit
 
-The content script in `extension/content/workday.js` sets input values, picks dropdown options and attaches files. Run to review presses one button per page: the footer button whose text is exactly Save and Continue, Next or Continue. Workday keeps the same automation id on that button on the Review page, where it reads Submit, so the guard is the text: `advance()` refuses on the Review page and refuses any button whose text contains Submit, before it clicks anything. The panel loop also stops on a validation message, on a page it cannot name, after eight pages, or when the page does not change after the click. The tests in `tests/test_fake_page.py` drive this against a fake Workday page whose Review step has a Submit button under the real automation id, and assert it is never clicked.
+The content script in `extension/content/workday.js` sets input values, picks dropdown options and attaches files. Run to review presses one button per page: the footer button whose text is exactly Save and Continue, Next or Continue. Workday keeps the same automation id on that button on the Review page, where it reads Submit, so the guard is the text: `advance()` refuses on the Review page and refuses any button whose text contains Submit, before it clicks anything. The panel loop also stops on a validation message, on a required field the agent could not answer, on a page it cannot name, after eight pages, or when the page does not change after the click. The tests in `tests/test_fake_page.py` drive this against a fake Workday page whose Review step has a Submit button under the real automation id, and assert it is never clicked.
+
+## Application questions
+
+Every tenant asks its own questions, so there is no list of them in the code. The content script reads each field on the page from Workday's own `formField-` wrappers: the label, the kind (text, dropdown, search box, radio, checkbox), the options of a dropdown or radio group, and whether the label carries the required star. The panel fills what the profile covers on its own and sends the rest to `POST /answer`. A second Strands agent answers from the profile, the notes and the CV, one structured answer per field with a reason, and returns null where those three say nothing: it will not guess whether you worked there before, how you heard of the job, or your right to work. Python then enforces the options, so a paraphrase of Yes never reaches a dropdown. The answers go back into the page through the same widget code the profile fill uses. Whatever is still empty and required is listed in the panel, and Save and Continue is not pressed until you answer it.
 
 ## Built with Strands Agents
 
 - `strands.Agent` with a system prompt and one tool, built once per request with the user's model.
+- A second `strands.Agent` for form answers, with structured output only: `FormAnswers`, one answer and one reason per field.
 - `@tool slop_check` from `agent/writer.py`, so the model can check its own draft mid-turn.
 - Structured output: each call passes `structured_output_model=TailorResult`, a Pydantic model with the CV markdown, the letter, the changes and the gaps. Tools and structured output work in the same invocation.
 - Three model providers from `strands.models`: `BedrockModel` with a Bedrock API key as bearer token, `AnthropicModel` and `OpenAIModel`, picked per request from the panel.
 
-The Python side is FastAPI on `127.0.0.1:8765` with four endpoints: `GET /health`, `POST /cv/parse`, `POST /tailor` and `GET /files/{name}`. PDFs are rendered with reportlab from a small markdown subset. CV text comes out of the PDF with pypdf.
+The Python side is FastAPI on `127.0.0.1:8765` with five endpoints: `GET /health`, `POST /cv/parse`, `POST /tailor`, `POST /answer` and `GET /files/{name}`. PDFs are rendered with reportlab from a small markdown subset. CV text comes out of the PDF with pypdf.
 
 ## Limitations
 
-- Workday selectors have been verified against the bundled fake page in `extension/test/fake-workday.html` and, for the posting page only, one real tenant (edftrading.wd1). Application form selectors come from open-source fillers and are not yet checked on a live tenant. Real Workday tenants vary. Fields the script cannot find are listed under Skipped after a fill and you type them by hand.
+- Workday selectors have been verified on one real tenant (edftrading.wd1) for the posting page, the progress bar that names each apply step, and every widget on the My Information page (text, dropdown, search box, radio, checkbox), plus the bundled fake page in `extension/test/fake-workday.html`. The My Experience upload and cover letter selectors come from open-source fillers and are not yet checked on a live tenant. Real Workday tenants vary. Fields the script cannot find are listed under Skipped after a fill and you type them by hand.
 - No account creation and no sign-in. Workday's apply flow needs an account on each employer's tenant, and that step stays manual on purpose.
 - The API key and profile live in `chrome.storage.local` as plaintext. Anyone with access to your Chrome profile can read them. Use a key you can revoke.
 - The CV PDF needs a text layer. Scans and image-only PDFs are rejected with a clear error.
 - The checker is deterministic, so it catches only what it has a rule for. It will not catch a made-up fact. Read the letter before you send it. The gaps list is there to help.
+- Free-text answers to application questions skip the checker. Read them on the page before you press Save and Continue.
 - One posting at a time. There is no queue and no history.
-- Run to review's footer button and error selectors come from open-source fillers and are not yet checked on a live tenant. If Workday's button has a different id, the text fallback finds it by its label. Voluntary disclosures and self-identification pages are advanced without being filled, since those answers are yours to give.
+- Run to review's footer button was verified on edftrading.wd1; the error selectors come from open-source fillers. If Workday's button has a different id, the text fallback finds it by its label. Voluntary disclosures and self-identification pages get the same treatment as any other: the agent answers only what your notes state, and the panel lists the rest for you.
 
 ## Tests
 

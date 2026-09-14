@@ -21,33 +21,85 @@
   </div>
 </template>
 
+<template id="tpl-signin">
+  <div data-automation-id="signInContent">
+    <h2>Sign In</h2>
+    <div data-automation-id="formField-email"><label for="email"><span>Email Address<abbr aria-hidden="true">*</abbr></span></label><input id="email" name="email" type="text"></div>
+    <div data-automation-id="formField-password"><label for="password"><span>Password<abbr aria-hidden="true">*</abbr></span></label><input id="password" name="password" type="password"></div>
+  </div>
+</template>
+
 <template id="tpl-info">
-  <div data-automation-id="contactInformationPage">
-    <label for="firstName">First name</label>
-    <input id="firstName" data-automation-id="legalNameSection_firstName" type="text">
-    <label for="lastName">Last name</label>
-    <input id="lastName" data-automation-id="legalNameSection_lastName" type="text">
-    <label for="addressLine1">Address line 1</label>
-    <input id="addressLine1" data-automation-id="addressSection_addressLine1" type="text">
-    <label for="city">City</label>
-    <input id="city" data-automation-id="addressSection_city" type="text">
-    <label for="postalCode">Postal code</label>
-    <input id="postalCode" data-automation-id="addressSection_postalCode" type="text">
-    <button type="button" aria-haspopup="listbox" data-automation-id="addressSection_countryRegion" aria-controls="country-list">Select country</button>
-    <label for="phoneNumber">Phone number</label>
-    <input id="phoneNumber" data-automation-id="phone-number" type="text">
-    <button type="button" aria-haspopup="listbox" data-automation-id="phone-device-type" aria-controls="phone-type-list">Select phone type</button>
+  <!-- mirrors edftrading.wd1 My Information: formField wrappers, <abbr>*</abbr> on required labels, no automation ids on controls -->
+  <div data-automation-id="applyFlowMyInfoPage">
+    <h2>My Information</h2>
+    <p>* Indicates a required field</p>
+    <div data-automation-id="formField-source">
+      <label for="source"><span>How Did You Hear About Us?<abbr aria-hidden="true">*</abbr></span></label>
+      <input id="source" placeholder="Search" data-prompt="LinkedIn,Indeed,Referral">
+    </div>
+    <div data-automation-id="formField-legalName--firstName">
+      <label for="firstName"><span>Given Name(s)<abbr aria-hidden="true">*</abbr></span></label>
+      <input id="firstName" name="legalName--firstName" type="text">
+    </div>
+    <div data-automation-id="formField-legalName--lastName">
+      <label for="lastName"><span>Family Name<abbr aria-hidden="true">*</abbr></span></label>
+      <input id="lastName" name="legalName--lastName" type="text">
+    </div>
+    <div data-automation-id="formField-addressLine1"><label for="addressLine1"><span>Address Line 1</span></label><input id="addressLine1" name="addressLine1" type="text"></div>
+    <div data-automation-id="formField-city"><label for="city"><span>City or Town</span></label><input id="city" name="city" type="text"></div>
+    <div data-automation-id="formField-postalCode"><label for="postalCode"><span>Postal Code</span></label><input id="postalCode" name="postalCode" type="text"></div>
+    <div data-automation-id="formField-country">
+      <label for="country"><span>Country<abbr aria-hidden="true">*</abbr></span></label>
+      <button id="country" name="country" type="button" aria-haspopup="listbox" data-options="United Kingdom,United States,Germany">Select One</button>
+    </div>
+    <div data-automation-id="formField-phoneType">
+      <label for="phoneType"><span>Phone Device Type<abbr aria-hidden="true">*</abbr></span></label>
+      <button id="phoneType" name="phoneType" type="button" aria-haspopup="listbox" data-options="Landline,Mobile">Select One</button>
+    </div>
+    <div data-automation-id="formField-countryPhoneCode">
+      <label for="countryPhoneCode"><span>Country Phone Code<abbr aria-hidden="true">*</abbr></span></label>
+      <input id="countryPhoneCode" placeholder="Search" data-prompt="United Kingdom (+44),United States of America (+1)">
+    </div>
+    <div data-automation-id="formField-phoneNumber">
+      <label for="phoneNumber"><span>Phone Number<abbr aria-hidden="true">*</abbr></span></label>
+      <input id="phoneNumber" name="phoneNumber" type="text">
+    </div>
   </div>
 </template>
 
 <template id="tpl-experience">
   <div data-automation-id="myExperiencePage">
+    <h2>My Experience</h2>
     <div data-automation-id="file-upload-drop-zone">
       <input type="file" multiple data-automation-id="file-upload-input-ref">
       <div id="upload-list"></div>
     </div>
-    <!-- guess: Appendix A has no source for a Workday cover letter field on this step -->
+    <!-- guess: no source for a Workday cover letter field on this step -->
     <textarea data-automation-id="coverLetter"></textarea>
+  </div>
+</template>
+
+<template id="tpl-questions">
+  <!-- no page container on purpose: this step is recognised from the progress bar alone -->
+  <div>
+    <h2>Application Questions</h2>
+    <div data-automation-id="formField-yearsExperience"><label for="yearsExperience"><span>Years of experience<abbr aria-hidden="true">*</abbr></span></label><input id="yearsExperience" type="text"></div>
+    <div data-automation-id="formField-rightToWork">
+      <label for="rightToWork"><span>Right to work in the UK<abbr aria-hidden="true">*</abbr></span></label>
+      <button id="rightToWork" type="button" aria-haspopup="listbox" data-options="Yes,No">Select One</button>
+    </div>
+    <div data-automation-id="formField-notice"><label for="notice"><span>Notice period</span></label><input id="notice" type="text"></div>
+    <div data-automation-id="formField-previousWorker">
+      <fieldset>
+        <legend><label id="previousWorkerLabel"><span>Have you worked here before?<abbr aria-hidden="true">*</abbr></span></label></legend>
+        <input id="previousWorkerYes" name="previousWorker" type="radio" value="true"><label for="previousWorkerYes">Yes</label>
+        <input id="previousWorkerNo" name="previousWorker" type="radio" value="false"><label for="previousWorkerNo">No</label>
+      </fieldset>
+    </div>
+    <div data-automation-id="formField-consent">
+      <input id="consent" name="consent" type="checkbox"><label for="consent"><span>I agree to the privacy notice<abbr aria-hidden="true">*</abbr></span></label>
+    </div>
   </div>
 </template>
 
@@ -60,18 +112,34 @@
 
 <script>
 (function () {
+  var app = document.getElementById("app");
   var step = new URLSearchParams(location.search).get("step");
-  var tplId = { info: "tpl-info", experience: "tpl-experience", review: "tpl-review" }[step] || "tpl-posting";
-  document.getElementById("app").appendChild(document.getElementById(tplId).content.cloneNode(true));
+  var tplId = { signin: "tpl-signin", info: "tpl-info", experience: "tpl-experience", questions: "tpl-questions", review: "tpl-review" }[step] || "tpl-posting";
+  app.appendChild(document.getElementById(tplId).content.cloneNode(true));
+
+  // Progress bar as on edftrading.wd1: the active item's text runs "current step 1 of 4" straight into the step name.
+  var STEPS = ["info", "experience", "questions", "review"];
+  var NAMES = { info: "My Information", experience: "My Experience", questions: "Application Questions", review: "Review" };
+  if (STEPS.indexOf(step) !== -1) {
+    var bar = document.createElement("ol");
+    bar.setAttribute("data-automation-id", "progressBar");
+    STEPS.forEach(function (s, i) {
+      var li = document.createElement("li");
+      li.setAttribute("data-automation-id", s === step ? "progressBarActiveStep" : "progressBarInactiveStep");
+      li.textContent = (s === step ? "current step " : "step ") + (i + 1) + " of " + STEPS.length + NAMES[s];
+      bar.appendChild(li);
+    });
+    app.insertBefore(bar, app.firstChild);
+  }
 
   // Footer as on Workday: one button id on every step, reading "Save and Continue" until the Review page, where it reads "Submit".
-  var NEXT = { info: "experience", experience: "review" };
+  var NEXT = { info: "experience", experience: "questions", questions: "review" };
   if (NEXT[step] || step === "review") {
     var footer = document.createElement("div");
-    footer.setAttribute("data-automation-id", "bottom-navigation");
+    footer.setAttribute("data-automation-id", "pageFooter");
     var btn = document.createElement("button");
     btn.type = "button";
-    btn.setAttribute("data-automation-id", "bottom-navigation-next-button");
+    btn.setAttribute("data-automation-id", "pageFooterNextButton");
     btn.textContent = step === "review" ? "Submit" : "Save and Continue";
     btn.addEventListener("click", function () {
       document.body.dataset.clicked = btn.textContent;
@@ -87,35 +155,59 @@
       setTimeout(function () { location.search = "?step=" + NEXT[step]; }, 200);
     });
     footer.appendChild(btn);
-    document.getElementById("app").appendChild(footer);
+    app.appendChild(footer);
   }
 
-  function initDropdown(button, listId, options) {
+  // Dropdowns as on edftrading.wd1: no aria-controls; the click appends an anonymous listbox to the body.
+  document.querySelectorAll('button[aria-haspopup="listbox"]').forEach(function (button) {
+    var options = ["Select One"].concat(button.dataset.options.split(","));
     button.addEventListener("click", function () {
-      var openList = document.getElementById(listId);
-      if (openList) { openList.parentElement.remove(); return; }
-      var popup = document.createElement("div");
-      popup.setAttribute("data-automation-widget", "wd-popup");
+      var open = document.querySelector('ul[role="listbox"].open-list');
+      if (open) { open.remove(); return; }
       var ul = document.createElement("ul");
-      ul.id = listId;
       ul.setAttribute("role", "listbox");
+      ul.className = "open-list";
       options.forEach(function (text) {
         var li = document.createElement("li");
-        li.textContent = text;
         li.setAttribute("role", "option");
-        li.addEventListener("click", function () { button.textContent = text; popup.remove(); });
+        li.textContent = text;
+        li.addEventListener("click", function () { button.textContent = text; ul.remove(); });
         ul.appendChild(li);
       });
-      popup.appendChild(ul);
+      document.body.appendChild(ul);
+    });
+  });
+
+  // Search boxes as on edftrading.wd1: Enter lists promptOption matches; picking one adds a selectedItem and empties the box.
+  document.querySelectorAll('input[placeholder="Search"]').forEach(function (input) {
+    var choices = input.dataset.prompt.split(",");
+    input.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter") return;
+      var q = input.value.trim().toLowerCase();
+      var popup = document.createElement("div");
+      popup.className = "prompt-popup";
+      choices.filter(function (c) { return c.toLowerCase().indexOf(q) !== -1; }).forEach(function (c) {
+        var p = document.createElement("p");
+        p.setAttribute("data-automation-id", "promptOption");
+        p.setAttribute("data-automation-label", c);
+        p.textContent = c;
+        p.addEventListener("click", function () {
+          var ul = document.createElement("ul");
+          ul.setAttribute("role", "listbox");
+          ul.setAttribute("data-automation-id", "selectedItemList");
+          var li = document.createElement("li");
+          li.setAttribute("data-automation-id", "selectedItem");
+          li.textContent = c;
+          ul.appendChild(li);
+          input.parentElement.appendChild(ul);
+          input.value = "";
+          popup.remove();
+        });
+        popup.appendChild(p);
+      });
       document.body.appendChild(popup);
     });
-  }
-
-  var countryButton = document.querySelector('[data-automation-id="addressSection_countryRegion"]');
-  if (countryButton) initDropdown(countryButton, "country-list", ["United Kingdom", "United States", "Germany"]);
-
-  var phoneButton = document.querySelector('[data-automation-id="phone-device-type"]');
-  if (phoneButton) initDropdown(phoneButton, "phone-type-list", ["Mobile", "Home"]);
+  });
 
   var fileInput = document.querySelector('[data-automation-id="file-upload-input-ref"]');
   if (fileInput) {

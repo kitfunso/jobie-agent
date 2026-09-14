@@ -1,18 +1,9 @@
 // extension/content/fill.js
 const Fill = (() => {
   // React caches the previous value on the element; resetting it forces the input event to register.
-  function setValueWithTracker(el, value) {
+  function setValue(el, value) {
     const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
     if (el._valueTracker) el._valueTracker.setValue("");
-    Object.getOwnPropertyDescriptor(proto, "value").set.call(el, value);
-    el.dispatchEvent(new Event("input", { bubbles: true }));
-    el.dispatchEvent(new Event("change", { bubbles: true }));
-    el.dispatchEvent(new Event("blur", { bubbles: true }));
-  }
-
-  function setValue(el, value) {
-    if (el._valueTracker) { setValueWithTracker(el, value); return; }
-    const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
     Object.getOwnPropertyDescriptor(proto, "value").set.call(el, value);
     el.dispatchEvent(new Event("input", { bubbles: true }));
     el.dispatchEvent(new Event("change", { bubbles: true }));
@@ -46,5 +37,5 @@ const Fill = (() => {
     return (lab?.textContent || el.getAttribute("aria-label") || el.getAttribute("placeholder") || "").trim().toLowerCase();
   }
 
-  return { setValue, setValueWithTracker, b64ToFile, setFiles, sleep, waitFor, labelFor };
+  return { setValue, b64ToFile, setFiles, sleep, waitFor, labelFor };
 })();

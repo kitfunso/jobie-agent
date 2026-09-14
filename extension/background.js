@@ -1,9 +1,20 @@
 // extension/background.js
 const SERVER = "http://127.0.0.1:8765";
 
+const WORKDAY = /^https:\/\/[^/]+\.(myworkdayjobs|myworkdaysite)\.com\//;
+
 chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 });
+
+// Toolbar badge marks Workday tabs so the user knows the panel has something to do here.
+function markTab(tabId, url) {
+  const on = WORKDAY.test(url || "");
+  chrome.action.setBadgeText({ tabId, text: on ? "WD" : "" });
+  if (on) chrome.action.setBadgeBackgroundColor({ tabId, color: "#1F5C3A" });
+}
+chrome.tabs.onUpdated.addListener((tabId, info, tab) => { if (info.url || info.status === "complete") markTab(tabId, tab.url); });
+chrome.tabs.onActivated.addListener(({ tabId }) => chrome.tabs.get(tabId).then(t => markTab(tabId, t.url)).catch(() => {}));
 
 async function api(method, path, body) {
   const init = { method, headers: {} };
@@ -37,7 +48,11 @@ function onError(sendResponse) {
   return e => sendResponse({ ok: false, status: 0, data: { detail: String(e) } });
 }
 
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.type === "open_side_panel" && sender.tab) {
+    chrome.sidePanel.open({ tabId: sender.tab.id }).then(() => sendResponse({ ok: true }), onError(sendResponse));
+    return true;
+  }
   if (msg.type === "api") { api(msg.method, msg.path, msg.body).then(sendResponse, onError(sendResponse)); return true; }
   if (msg.type === "fetch_pdf") { fetchPdf(msg.path).then(sendResponse, onError(sendResponse)); return true; }
   if (msg.type === "cv_parse") { cvParse(msg.b64, msg.name).then(sendResponse, onError(sendResponse)); return true; }

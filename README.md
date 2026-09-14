@@ -17,7 +17,7 @@ copy .env.example .env                              (then put your key in .env)
 scripts\run-server.cmd                              (or: python -m uvicorn server.app:app --host 127.0.0.1 --port 8765)
 ```
 
-Then in Chrome: open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick the `extension/` folder. Click the jobie-agent icon to open the side panel.
+Then in Chrome: open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick the `extension/` folder. Click the jobie-agent icon to open the side panel. On any Workday page a small jobie-agent pill also appears at the bottom right; click it to open the panel, or its x to hide it for that tab. The toolbar icon shows a WD badge on Workday tabs.
 
 In the panel:
 

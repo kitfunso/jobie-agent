@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Senior Data Engineer - Sample Co</title>
+</head>
+<body>
+<div id="app"></div>
+
+<template id="tpl-posting">
+  <h1 data-automation-id="jobPostingHeader">Senior Data Engineer</h1>
+  <div data-automation-id="locations">London, United Kingdom</div>
+  <div data-automation-id="jobPostingDescription">
+    <p>We are looking for a Senior Data Engineer to own our freight and pricing data pipelines.</p>
+    <p>You will build and run Python and SQL jobs against a multi-terabyte lake and cut error rates through better reconciliation.</p>
+    <p>Experience with cloud data warehouses and a production on-call rotation is expected.</p>
+  </div>
+</template>
+
+<template id="tpl-info">
+  <div data-automation-id="contactInformationPage">
+    <label for="firstName">First name</label>
+    <input id="firstName" data-automation-id="legalNameSection_firstName" type="text">
+    <label for="lastName">Last name</label>
+    <input id="lastName" data-automation-id="legalNameSection_lastName" type="text">
+    <label for="addressLine1">Address line 1</label>
+    <input id="addressLine1" data-automation-id="addressSection_addressLine1" type="text">
+    <label for="city">City</label>
+    <input id="city" data-automation-id="addressSection_city" type="text">
+    <label for="postalCode">Postal code</label>
+    <input id="postalCode" data-automation-id="addressSection_postalCode" type="text">
+    <button type="button" aria-haspopup="listbox" data-automation-id="addressSection_countryRegion" aria-controls="country-list">Select country</button>
+    <label for="phoneNumber">Phone number</label>
+    <input id="phoneNumber" data-automation-id="phone-number" type="text">
+    <button type="button" aria-haspopup="listbox" data-automation-id="phone-device-type" aria-controls="phone-type-list">Select phone type</button>
+  </div>
+</template>
+
+<template id="tpl-experience">
+  <div data-automation-id="myExperiencePage">
+    <div data-automation-id="file-upload-drop-zone">
+      <input type="file" multiple data-automation-id="file-upload-input-ref">
+      <div id="upload-list"></div>
+    </div>
+    <!-- guess: Appendix A has no source for a Workday cover letter field on this step -->
+    <textarea data-automation-id="coverLetter"></textarea>
+  </div>
+</template>
+
+<script>
+(function () {
+  var step = new URLSearchParams(location.search).get("step");
+  var tplId = step === "info" ? "tpl-info" : step === "experience" ? "tpl-experience" : "tpl-posting";
+  document.getElementById("app").appendChild(document.getElementById(tplId).content.cloneNode(true));
+
+  function initDropdown(button, listId, options) {
+    button.addEventListener("click", function () {
+      var openList = document.getElementById(listId);
+      if (openList) { openList.parentElement.remove(); return; }
+      var popup = document.createElement("div");
+      popup.setAttribute("data-automation-widget", "wd-popup");
+      var ul = document.createElement("ul");
+      ul.id = listId;
+      ul.setAttribute("role", "listbox");
+      options.forEach(function (text) {
+        var li = document.createElement("li");
+        li.textContent = text;
+        li.setAttribute("role", "option");
+        li.addEventListener("click", function () { button.textContent = text; popup.remove(); });
+        ul.appendChild(li);
+      });
+      popup.appendChild(ul);
+      document.body.appendChild(popup);
+    });
+  }
+
+  var countryButton = document.querySelector('[data-automation-id="addressSection_countryRegion"]');
+  if (countryButton) initDropdown(countryButton, "country-list", ["United Kingdom", "United States", "Germany"]);
+
+  var phoneButton = document.querySelector('[data-automation-id="phone-device-type"]');
+  if (phoneButton) initDropdown(phoneButton, "phone-type-list", ["Mobile", "Home"]);
+
+  var fileInput = document.querySelector('[data-automation-id="file-upload-input-ref"]');
+  if (fileInput) {
+    fileInput.addEventListener("change", function () {
+      var list = document.getElementById("upload-list");
+      list.innerHTML = "";
+      Array.prototype.forEach.call(fileInput.files, function (f) {
+        var row = document.createElement("div");
+        row.setAttribute("data-automation-id", "file-upload-successful");
+        row.textContent = f.name;
+        list.appendChild(row);
+      });
+    });
+  }
+})();
+</script>
+</body>
+</html>

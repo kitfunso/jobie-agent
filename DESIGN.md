@@ -38,7 +38,7 @@
 - **Approach:** one column, three numbered stages in the order of work: 1 Set up once (settings, profile, CV), 2 This posting (read, tailor, checks), 3 Apply (run to review, log). Stage 1 folds away after the first save.
 - **Grid:** single column, 320px panel, 12px side padding, labels above inputs.
 - **Max content width:** 320px (the panel); mock pages show the panel docked at the right edge of a neutral placeholder tab.
-- **Border radius:** 2px inputs, 3px buttons, 0 on the header band and rules.
+- **Border radius:** 6px inputs and buttons, 8px plates (status banner, folded stage row, receipt, run log), 0 on the header band and rules.
 
 ## Motion
 - **Approach:** minimal-functional. The shader runs slowly at rest (speed 0.25), faster during a run (0.8), and still on the Review stop. Status banner and run-log rows enter with a 150ms fade and 4px rise. Hover changes colour only. prefers-reduced-motion freezes the shader on one frame and removes the entrances.
@@ -52,3 +52,6 @@
 | 2026-09-14 | No purple | User instruction. |
 | 2026-09-14 | Deep green accent on cool neutrals | Workday is blue; green keeps the panel visibly separate. Deep rather than acid so it is not the dev-tool cliche. |
 | 2026-09-14 | Fonts bundled in the extension | The product promise is that nothing leaves the machine except the model call. |
+| 2026-09-14 | Panel variant v1 approved (frontend-mix seed 393736): sticky mesh-gradient header that shrinks on scroll, border-beam focus, bento receipt plate | User pick from five gated variants. The header scrub ships on the CSS class path only; gsap, ScrollTrigger and Lenis stay out of the extension (remote scripts are blocked by MV3 and the fallback already covers it). |
+| 2026-09-14 | Rounded boxes: 6px inputs and buttons, 8px plates | User instruction after seeing v1. |
+| 2026-09-14 | Logo: upright stacked pages with a dot (three.js mock l3), exported as PNG at 16/32/48/128 | User pick from five three.js marks. Three.js is not bundled; the extension ships only the PNGs. |

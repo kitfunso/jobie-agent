@@ -16,6 +16,10 @@ const PAGE_CHANGE_TIMEOUT_MS = 20000;
 
 function $(id) { return document.getElementById(id); }
 
+function setShaderSpeed(speed) {
+  document.dispatchEvent(new CustomEvent("jobie:shader", { detail: { speed } }));
+}
+
 function showStatus(msg) {
   const el = $("status");
   el.textContent = msg;
@@ -183,6 +187,7 @@ function renderList(id, items) {
 
 async function onTailor() {
   clearStatus();
+  setShaderSpeed(0.8);
   const store = await chrome.storage.local.get(["settings", "cv_text"]);
   const settings = store.settings || {};
   const body = {
@@ -194,7 +199,7 @@ async function onTailor() {
     provider: { name: settings.name || "bedrock", api_key: settings.api_key || "", model_id: settings.model_id || "", region: settings.region || "" }
   };
   const resp = await sendToBg({ type: "api", method: "POST", path: "/tailor", body });
-  if (!resp.ok) { showStatus("Tailor failed: " + detailOf(resp)); return false; }
+  if (!resp.ok) { showStatus("Tailor failed: " + detailOf(resp)); setShaderSpeed(0.25); return false; }
   const data = resp.data;
   renderRounds(data.rounds);
   $("cv-markdown").value = data.cv_markdown || "";
@@ -204,6 +209,7 @@ async function onTailor() {
   applyTailored(tailored);
   // session storage so the result survives the panel closing while the user signs in and clicks Apply
   await chrome.storage.session.set({ tailored });
+  setShaderSpeed(0.25);
   return true;
 }
 
@@ -285,37 +291,62 @@ async function onRunToReview() {
   clearStatus();
   $("run-log").textContent = "";
   runStopped = false;
+  setShaderSpeed(0.8);
   // a new posting was read since the last tailor: reuse nothing from the previous application
   if (!(lastCvPdfPath && lastLetterPdfPath) || lastTailoredUrl !== lastPostingUrl) {
-    if (!$("posting-description").value) { showStatus("Open the posting and click Read this posting first, then Run to review."); return; }
+    if (!$("posting-description").value) { showStatus("Open the posting and click Read this posting first, then Run to review."); setShaderSpeed(0.25); return; }
     logRun("Tailoring CV and letter for this posting (the only step that spends tokens)");
-    if (!(await onTailor())) return;
+    if (!(await onTailor())) { setShaderSpeed(0.25); return; }
     logRun("Tailored.");
+    setShaderSpeed(0.8); // resume run motion: onTailor() dropped it to rest speed on its own success
   }
   const data = await collectFillData();
-  if (!data) return;
+  if (!data) { setShaderSpeed(0.25); return; }
   const tab = await getActiveTab();
   for (let page = 1; page <= MAX_PAGES; page++) {
-    if (runStopped) { showStatus("Stopped."); return; }
+    if (runStopped) { showStatus("Stopped."); setShaderSpeed(0.25); return; }
     const info = await pageInfo(tab.id);
-    if (!info) { showStatus("Could not reach this page."); return; }
-    if (info.step === "review") { logRun("Review page reached."); showStatus("Review page. Read it through and press Submit yourself."); return; }
-    if (info.step === "unknown" && page > 1) { showStatus("Stopped at a page I do not recognise. Fill it by hand, then click Run to review again."); return; }
+    if (!info) { showStatus("Could not reach this page."); setShaderSpeed(0.25); return; }
+    if (info.step === "review") { logRun("Review page reached."); showStatus("Review page. Read it through and press Submit yourself."); setShaderSpeed(0); return; }
+    if (info.step === "unknown" && page > 1) { showStatus("Stopped at a page I do not recognise. Fill it by hand, then click Run to review again."); setShaderSpeed(0.25); return; }
     if (info.step !== "unknown") {
       const fill = await sendToTab(tab.id, { type: "fill", data });
-      if (!fill || !fill.ok) { showStatus("Fill failed: " + detailOf(fill)); return; }
+      if (!fill || !fill.ok) { showStatus("Fill failed: " + detailOf(fill)); setShaderSpeed(0.25); return; }
       logRun(info.step + ": filled " + fill.filled.length + ", skipped " + fill.skipped.length);
       renderFillResults(fill.filled, fill.skipped);
     }
     const adv = await sendToTab(tab.id, { type: "advance" });
-    if (!adv || !adv.ok) { showStatus("Stopped: " + (adv && adv.reason ? adv.reason : detailOf(adv))); return; }
+    if (!adv || !adv.ok) { showStatus("Stopped: " + (adv && adv.reason ? adv.reason : detailOf(adv))); setShaderSpeed(0.25); return; }
     logRun('Pressed "' + adv.clicked + '"');
     const next = await waitForPageChange(tab.id, info);
-    if (runStopped) { showStatus("Stopped."); return; }
-    if (next.info.errors.length) { showStatus("Workday flagged: " + next.info.errors.join("; ") + ". Fix this by hand, then click Run to review again."); return; }
-    if (!next.changed) { showStatus("Stopped: the page did not move on after Save and Continue."); return; }
+    if (runStopped) { showStatus("Stopped."); setShaderSpeed(0.25); return; }
+    if (next.info.errors.length) { showStatus("Workday flagged: " + next.info.errors.join("; ") + ". Fix this by hand, then click Run to review again."); setShaderSpeed(0.25); return; }
+    if (!next.changed) { showStatus("Stopped: the page did not move on after Save and Continue."); setShaderSpeed(0.25); return; }
   }
   showStatus("Stopped after " + MAX_PAGES + " pages without reaching Review.");
+  setShaderSpeed(0.25);
+}
+
+// Folds stage 1 once settings, profile and CV are all saved; Edit unfolds it again.
+async function renderSetupFold() {
+  const store = await chrome.storage.local.get(["settings", "profile", "cv_text", "cv_file", "setupFolded"]);
+  const allSaved = !!(store.settings && store.profile && store.cv_text);
+  const folded = allSaved && !!store.setupFolded;
+  $("setup-folded").hidden = !folded;
+  $("setup-unfolded").hidden = folded;
+  if (folded) {
+    const s = store.settings || {};
+    const p = store.profile || {};
+    const name = [p.first_name, p.last_name].filter(Boolean).join(" ");
+    const cvName = (store.cv_file && store.cv_file.name) || "";
+    $("fold-summary").textContent = ["1 Set up once", s.name || "", name, cvName].filter(Boolean).join(" · ");
+  }
+}
+
+async function maybeFoldSetup() {
+  const store = await chrome.storage.local.get(["settings", "profile", "cv_text"]);
+  if (store.settings && store.profile && store.cv_text) await chrome.storage.local.set({ setupFolded: true });
+  await renderSetupFold();
 }
 
 async function init() {
@@ -326,11 +357,13 @@ async function init() {
   const session = await chrome.storage.session.get(["tailored"]);
   if (session.tailored) applyTailored(session.tailored);
   checkServer();
+  await renderSetupFold();
 
   $("provider").addEventListener("change", updateModelPlaceholder);
-  $("save-settings").addEventListener("click", saveSettings);
-  $("save-profile").addEventListener("click", saveProfile);
-  $("cv-file").addEventListener("change", onCvFile);
+  $("save-settings").addEventListener("click", async () => { await saveSettings(); await maybeFoldSetup(); });
+  $("save-profile").addEventListener("click", async () => { await saveProfile(); await maybeFoldSetup(); });
+  $("cv-file").addEventListener("change", async (e) => { await onCvFile(e); await maybeFoldSetup(); });
+  $("setup-edit").addEventListener("click", async () => { await chrome.storage.local.set({ setupFolded: false }); await renderSetupFold(); });
   $("read-posting").addEventListener("click", onReadPosting);
   $("tailor-btn").addEventListener("click", onTailor);
   $("fill-btn").addEventListener("click", onFill);

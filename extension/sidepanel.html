@@ -2,99 +2,189 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>jobie-agent</title>
 <link rel="stylesheet" href="sidepanel.css">
 </head>
 <body>
-<div id="status" class="status" hidden></div>
 
-<section id="server">
-  <p id="server-status">Server: checking...</p>
-</section>
+<div id="panel">
+  <div id="panel-inner">
 
-<section id="settings">
-  <h2>Settings</h2>
-  <label for="provider">Provider</label>
-  <select id="provider">
-    <option value="bedrock">bedrock</option>
-    <option value="anthropic">anthropic</option>
-    <option value="openai">openai</option>
-  </select>
-  <label for="api-key">API key</label>
-  <input id="api-key" type="password" autocomplete="off">
-  <label for="model-id">Model id</label>
-  <input id="model-id" type="text">
-  <label for="region">Region (bedrock only)</label>
-  <input id="region" type="text" placeholder="us-east-1">
-  <button id="save-settings">Save</button>
-</section>
+    <header id="hero">
+      <div class="hero-content">
+        <div class="hero-scrim" aria-hidden="true"></div>
+        <div class="wordmark-row">
+          <img class="mark" src="icons/icon-32.png" width="22" height="22" alt="">
+          <span class="wordmark">jobie-agent</span>
+        </div>
+        <p class="tagline">Reads the posting. Tailors your CV. Fills the form. Never presses Submit.</p>
+        <p id="server-status">Server: checking...</p>
+      </div>
+    </header>
 
-<section id="profile">
-  <h2>Profile</h2>
-  <label for="first-name">First name</label>
-  <input id="first-name" type="text">
-  <label for="last-name">Last name</label>
-  <input id="last-name" type="text">
-  <label for="email">Email</label>
-  <input id="email" type="text">
-  <label for="phone">Phone</label>
-  <input id="phone" type="text">
-  <label for="country">Country</label>
-  <input id="country" type="text">
-  <label for="city">City</label>
-  <input id="city" type="text">
-  <label for="linkedin">LinkedIn</label>
-  <input id="linkedin" type="text">
-  <button id="save-profile">Save</button>
-</section>
+    <div id="status" class="status" hidden></div>
 
-<section id="cv">
-  <h2>CV</h2>
-  <input id="cv-file" type="file" accept="application/pdf,.pdf">
-  <p id="cv-info">No CV loaded.</p>
-</section>
+    <section class="stage stage-1">
+      <div class="stage-folded" id="setup-folded" hidden>
+        <span class="fold-summary" id="fold-summary"></span>
+        <button type="button" class="btn btn-text" id="setup-edit">Edit</button>
+      </div>
 
-<section id="posting">
-  <h2>Posting</h2>
-  <button id="read-posting">Read this posting</button>
-  <label for="posting-title">Title</label>
-  <input id="posting-title" type="text">
-  <label for="posting-company">Company</label>
-  <input id="posting-company" type="text">
-  <label for="posting-location">Location</label>
-  <input id="posting-location" type="text">
-  <label for="posting-description">Description</label>
-  <textarea id="posting-description" rows="6"></textarea>
-</section>
+      <div class="stage-unfolded" id="setup-unfolded">
+        <h2 class="stage-heading"><span class="stage-num">1</span> Set up once</h2>
 
-<section id="tailor">
-  <h2>Tailor</h2>
-  <button id="tailor-btn">Tailor CV and write letter</button>
-  <div id="rounds"></div>
-  <label for="letter-text">Cover letter</label>
-  <textarea id="letter-text" rows="8"></textarea>
-  <label for="cv-markdown">CV (markdown)</label>
-  <textarea id="cv-markdown" rows="10"></textarea>
-  <h3>Changes</h3>
-  <ul id="changes-list"></ul>
-  <h3>Gaps</h3>
-  <ul id="gaps-list"></ul>
-  <p>
-    <a id="cv-pdf-link" href="#" target="_blank" hidden>CV PDF</a>
-    <a id="letter-pdf-link" href="#" target="_blank" hidden>Letter PDF</a>
-  </p>
-</section>
+        <fieldset>
+          <legend>Settings</legend>
+          <div class="field">
+            <label for="provider">Provider</label>
+            <select id="provider">
+              <option value="bedrock">bedrock</option>
+              <option value="anthropic">anthropic</option>
+              <option value="openai">openai</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="api-key">API key</label>
+            <input id="api-key" type="password" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="model-id">Model id</label>
+            <input id="model-id" type="text">
+          </div>
+          <div class="field">
+            <label for="region">Region (bedrock only)</label>
+            <input id="region" type="text" placeholder="us-east-1">
+          </div>
+          <button type="button" class="btn btn-secondary" id="save-settings">Save</button>
+        </fieldset>
 
-<section id="apply">
-  <h2>Apply</h2>
-  <button id="fill-btn">Fill this page</button>
-  <button id="run-btn">Run to review</button>
-  <button id="stop-btn">Stop</button>
-  <p class="note">Run to review fills each page, presses Save and Continue, and stops at the Review page or as soon as a page needs you. jobie-agent never presses Submit.</p>
-  <ul id="run-log"></ul>
-  <div id="fill-results"></div>
-</section>
+        <fieldset>
+          <legend>Profile</legend>
+          <div class="field">
+            <label for="first-name">First name</label>
+            <input id="first-name" type="text">
+          </div>
+          <div class="field">
+            <label for="last-name">Last name</label>
+            <input id="last-name" type="text">
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" type="text">
+          </div>
+          <div class="field">
+            <label for="phone">Phone</label>
+            <input id="phone" type="text">
+          </div>
+          <div class="field">
+            <label for="country">Country</label>
+            <input id="country" type="text">
+          </div>
+          <div class="field">
+            <label for="city">City</label>
+            <input id="city" type="text">
+          </div>
+          <div class="field">
+            <label for="linkedin">LinkedIn</label>
+            <input id="linkedin" type="text">
+          </div>
+          <button type="button" class="btn btn-secondary" id="save-profile">Save</button>
+        </fieldset>
+
+        <fieldset>
+          <legend>CV</legend>
+          <div class="field">
+            <label for="cv-file">CV file</label>
+            <input id="cv-file" type="file" accept="application/pdf,.pdf">
+            <p id="cv-info">No CV loaded.</p>
+          </div>
+        </fieldset>
+      </div>
+    </section>
+
+    <section class="stage stage-2">
+      <h2 class="stage-heading"><span class="stage-num">2</span> This posting</h2>
+
+      <div class="bento">
+        <div class="bento-cell bento-cell--span2">
+          <button type="button" class="btn btn-secondary" id="read-posting">Read this posting</button>
+          <div class="field field--top">
+            <label for="posting-title">Title</label>
+            <input id="posting-title" type="text">
+          </div>
+          <div class="field">
+            <label for="posting-company">Company</label>
+            <input id="posting-company" type="text">
+          </div>
+          <div class="field">
+            <label for="posting-location">Location</label>
+            <input id="posting-location" type="text">
+          </div>
+          <div class="field">
+            <label for="posting-description">Description</label>
+            <textarea id="posting-description" rows="4"></textarea>
+          </div>
+          <button type="button" class="btn btn-primary" id="tailor-btn">Tailor CV and write letter</button>
+        </div>
+
+        <div class="bento-cell bento-cell--receipt">
+          <div id="rounds"></div>
+        </div>
+
+        <div class="bento-cell bento-cell--span2">
+          <label for="letter-text">Cover letter</label>
+          <textarea id="letter-text" rows="6"></textarea>
+        </div>
+
+        <div class="bento-cell bento-cell--span2">
+          <label for="cv-markdown">CV (markdown)</label>
+          <textarea id="cv-markdown" rows="5"></textarea>
+        </div>
+
+        <div class="bento-cell">
+          <h3>Changes</h3>
+          <ul id="changes-list"></ul>
+        </div>
+
+        <div class="bento-cell">
+          <h3>Gaps</h3>
+          <ul id="gaps-list"></ul>
+        </div>
+
+        <div class="bento-cell bento-cell--span2 pdf-links">
+          <a id="cv-pdf-link" href="#" target="_blank" hidden>CV PDF</a>
+          <a id="letter-pdf-link" href="#" target="_blank" hidden>Letter PDF</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="stage stage-3">
+      <h2 class="stage-heading"><span class="stage-num">3</span> Apply</h2>
+
+      <div class="apply-actions">
+        <button type="button" class="btn btn-secondary" id="fill-btn">Fill this page</button>
+        <button type="button" class="btn btn-primary" id="run-btn">Run to review</button>
+        <div class="stop-row">
+          <button type="button" class="btn btn-text btn-text--danger" id="stop-btn">Stop</button>
+        </div>
+      </div>
+
+      <p class="note">Run to review fills each page, presses Save and Continue, and stops at the Review page or as soon as a page needs you. jobie-agent never presses Submit.</p>
+
+      <ul id="run-log" class="run-log"></ul>
+
+      <div id="fill-results"></div>
+    </section>
+
+  </div>
+</div>
+
+<footer class="promise-footer">
+  <span class="promise-text">Never presses Submit.</span>
+</footer>
 
 <script src="sidepanel.js"></script>
+<script type="module" src="shader.js"></script>
 </body>
 </html>

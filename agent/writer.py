@@ -14,7 +14,7 @@ from agent.slop import Finding, check
 
 class TailorResult(BaseModel):
     cv_markdown: str = Field(description="The tailored CV in markdown")
-    cover_letter: str = Field(description="Plain-text cover letter, 180 to 300 words")
+    cover_letter: str = Field(description="Plain-text cover letter, 150 to 250 words")
     changes: list[str] = Field(description="What changed in the CV and why, one line each")
     gaps: list[str] = Field(description="Posting requirements the CV does not evidence")
 
@@ -53,20 +53,20 @@ def slop_check(text: str, kind: str = "letter") -> dict:
     return {"status": "success", "content": [{"text": json.dumps({"count": len(findings), "findings": findings})}]}
 
 
-def _all_findings(result: TailorResult) -> tuple[Finding, ...]:
-    return check(result.cover_letter, "letter") + check(result.cv_markdown, "cv")
+def _all_findings(result: TailorResult, posting: str) -> tuple[Finding, ...]:
+    return check(result.cover_letter, "letter", posting) + check(result.cv_markdown, "cv")
 
 
 def _findings_text(findings: tuple[Finding, ...]) -> str:
     return "\n".join(f"- {f.rule}: \"{f.quote}\" -> {f.fix}" for f in findings)
 
 
-def run_loop(generate: Generator, prompt: str, max_rounds: int = 3) -> TailorOutcome:
+def run_loop(generate: Generator, prompt: str, max_rounds: int = 3, posting: str = "") -> TailorOutcome:
     gen = generate(prompt)
     rounds: list[Round] = []
     for n in range(1, max_rounds + 1):
         rounds.extend(Round(n, "agent", f) for f in gen.self_checks)
-        findings = _all_findings(gen.result)
+        findings = _all_findings(gen.result, posting)
         rounds.append(Round(n, "loop", findings))
         if not findings or n == max_rounds:
             break
@@ -101,4 +101,4 @@ def make_generator(model: Model) -> Generator:
 
 
 def tailor(model: Model, title: str, company: str, location: str, description: str, cv_text: str) -> TailorOutcome:
-    return run_loop(make_generator(model), first_prompt(title, company, location, description, cv_text))
+    return run_loop(make_generator(model), first_prompt(title, company, location, description, cv_text), posting=description)

@@ -4,7 +4,8 @@ from __future__ import annotations
 import statistics
 from dataclasses import dataclass
 
-from agent.slop_rules import (EM_DASH, MAX_LETTER_WORDS, RULES, SENTENCE_SPLIT, SUMMARY_OPENERS)
+from agent.slop_rules import (CONTRACTIONS, ECHO_NGRAM, EM_DASH, MAX_LETTER_WORDS, MIN_WORDS_FOR_CONTRACTIONS, RULES,
+                              SENTENCE_SPLIT, SUMMARY_OPENERS, WORD)
 
 
 @dataclass(frozen=True)
@@ -14,7 +15,8 @@ class Finding:
     fix: str
 
 
-def check(text: str, kind: str = "letter") -> tuple[Finding, ...]:
+def check(text: str, kind: str = "letter", posting: str = "") -> tuple[Finding, ...]:
+    """Findings for a draft; pass the posting text to catch phrases copied from it."""
     findings: list[Finding] = []
     for rule in RULES:
         if kind not in rule.kinds:
@@ -22,6 +24,8 @@ def check(text: str, kind: str = "letter") -> tuple[Finding, ...]:
         for match in rule.pattern.finditer(text):
             findings.append(Finding(rule.name, _sentence_around(text, match.start()), rule.fix))
     findings.extend(_shape_findings(text, kind))
+    if kind == "letter":
+        findings.extend(_echo_findings(text, posting))
     return tuple(findings)
 
 
@@ -58,4 +62,21 @@ def _shape_findings(text: str, kind: str) -> list[Finding]:
         lengths = [len(s.split()) for s in sentences]
         if statistics.pstdev(lengths) < 3.0:
             out.append(Finding("robotic rhythm", " ".join(sentences[:2])[:160], "vary sentence length"))
+    if words >= MIN_WORDS_FOR_CONTRACTIONS and not CONTRACTIONS.search(text.replace("’", "'")):
+        out.append(Finding("no contractions", sentences[0][:160] if sentences else "",
+                           "use two or three contractions where you would say them (I've, I'm, that's)"))
     return out
+
+
+def _ngrams(text: str) -> set[tuple[str, ...]]:
+    words = WORD.findall(text.lower())
+    return {tuple(words[i:i + ECHO_NGRAM]) for i in range(len(words) - ECHO_NGRAM + 1)}
+
+
+def _echo_findings(text: str, posting: str) -> list[Finding]:
+    """A run of ECHO_NGRAM words shared with the posting is the ad talking, not the applicant."""
+    posting_grams = _ngrams(posting) if posting else set()
+    if not posting_grams:
+        return []
+    return [Finding("posting echo", s[:160], "say it in the applicant's own words")
+            for s in _sentences(text) if _ngrams(s) & posting_grams]

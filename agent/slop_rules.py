@@ -40,7 +40,26 @@ CLICHES = _any(
     r"fast-paced environment", r"self-starter", r"go-getter", r"detail-oriented",
     r"think(?:ing)? outside the box", r"perfect fit", r"ideal candidate", r"wealth of experience",
     r"i believe (?:i|my)", r"dynamic (?:team|environment|role)",
+    r"i am confident (?:that|in)", r"i would welcome the (?:opportunity|chance)", r"i look forward to",
+    r"aligns? (?:closely |perfectly |well )?with", r"resonates?", r"(?:drawn|attracted) to",
+    r"well[- ]positioned", r"uniquely (?:positioned|qualified|placed)", r"extensive experience",
+    r"strong background", r"eager to", r"keen to", r"meaningful (?:contribution|impact)",
+    r"contribute to (?:your|the) (?:team|success|mission)", r"thank you for (?:considering|your (?:time|consideration))",
+    r"throughout my career", r"in my current role", r"i bring", r"skill ?set", r"cross-functional",
+    r"best practices", r"your (?:organi[sz]ation|esteemed)", r"dear hiring manager", r"exciting opportunity",
+    r"the successful candidate", r"track record", r"state-of-the-art", r"world-class",
+    r"deliver(?:ing|s|ed)? value", r"drive (?:growth|results|impact|innovation)", r"impactful",
+    r"i am particularly", r"what excites me",
 )
+
+# Spoken contractions only; possessive 's is left out so "EDF's desk" does not count.
+CONTRACTIONS = re.compile(
+    r"\b(?:i'm|i've|i'd|i'll|it's|that's|there's|here's|what's|let's|isn't|wasn't|aren't|weren't|don't|doesn't|"
+    r"didn't|can't|couldn't|won't|wouldn't|haven't|hasn't|hadn't|we're|we've|we'd|we'll|they're|they've|you're|"
+    r"you'll|you've|who's)\b", re.IGNORECASE)
+MIN_WORDS_FOR_CONTRACTIONS = 120
+ECHO_NGRAM = 8
+WORD = re.compile(r"[a-z0-9]+")
 
 EMPTY_PHRASES = _any(
     r"it'?s worth noting", r"it'?s important to note", r"at the end of the day", r"when it comes to",

@@ -74,3 +74,26 @@ def test_cv_skills_line_has_no_findings():
 def test_word_boundary_avoids_substring_false_positive():
     text = "Realmside Ltd ran the utilities contract for the desk."
     assert check(text, "letter") == ()
+
+
+def test_full_letter_without_contractions_is_flagged():
+    stiff = "I built the pipeline at Unipec in 2021 and ran it. " * 14
+    assert any(f.rule == "no contractions" for f in check(stiff, "letter"))
+    assert not any(f.rule == "no contractions" for f in check(stiff + "I've kept it running since.", "letter"))
+    assert not any(f.rule == "no contractions" for f in check("I built it. No contractions here.", "letter"))
+
+
+def test_posting_echo_needs_eight_shared_words():
+    posting = "You will build and run Python and SQL jobs against a multi-terabyte lake and cut error rates."
+    echo = "At Unipec I would build and run Python and SQL jobs against a multi-terabyte lake every day."
+    hits = [f for f in check(echo, "letter", posting) if f.rule == "posting echo"]
+    assert hits and hits[0].quote.startswith("At Unipec")
+    own_words = "At Unipec I ran the Python and SQL jobs on a lake of 40 TB and cut errors by half."
+    assert not any(f.rule == "posting echo" for f in check(own_words, "letter", posting))
+    assert not any(f.rule == "posting echo" for f in check(echo, "cv", posting))
+
+
+def test_template_letter_phrases_are_cliches():
+    text = ("Dear Hiring Manager, I am confident that my extensive experience aligns with your needs. "
+            "I look forward to hearing from you. Thank you for considering my application.")
+    assert len([f for f in check(text, "letter") if f.rule == "cover letter cliche"]) >= 4

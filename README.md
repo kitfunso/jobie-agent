@@ -41,7 +41,7 @@ The rule families in `agent/slop_rules.py`:
 | Rule | What it catches |
 |---|---|
 | banned word | delve, leverage, robust, seamless, tapestry, testament, spearhead and about 35 more |
-| cover letter cliche | "I am writing to express", "excited to apply", "proven track record", "team player", "perfect fit" |
+| cover letter cliche | "I am writing to express", "excited to apply", "proven track record", "team player", "perfect fit", "aligns with", "I look forward to", "Dear Hiring Manager", "thank you for considering" and about 30 more |
 | empty phrase | filler that adds no fact |
 | binary contrast | "not just X but Y" |
 | throat clearing | openers that announce the sentence instead of saying it |
@@ -57,7 +57,7 @@ The rule families in `agent/slop_rules.py`:
 | hedging stack | "may potentially", "could possibly" |
 | emoji | any |
 
-On top of the regex rules, `agent/slop.py` checks the shape of the text: em dashes (one is enough to fail a letter), letters over 350 words, a closing paragraph that summarises, most sentences opening with "I", and sentence lengths so even they read as machine output.
+On top of the regex rules, `agent/slop.py` checks the shape of the text: em dashes (one is enough to fail a letter), letters over 350 words, a closing paragraph that summarises, most sentences opening with "I", sentence lengths so even they read as machine output, a full-length letter with no contractions at all, and any run of eight words copied from the posting (the ad talking instead of the applicant).
 
 The checker runs in two layers:
 
@@ -66,7 +66,7 @@ The checker runs in two layers:
 
 The panel shows both layers. Each `slop_check` call the model made mid-turn appears as an "Agent self-check" row, read back from the Strands message history, and the outside pass appears as a "Loop check" row, so you can watch the draft getting cleaner.
 
-The model also gets a plain brief: facts from the CV only, list what the posting asks for that the CV does not show as a gap, 180 to 300 words for the letter, open with a specific fact and never with "I am writing to".
+The model also gets a plain brief: facts from the CV only, list what the posting asks for that the CV does not show as a gap, 150 to 250 words for the letter, written as the applicant talking to one person with contractions where they would say them, open with the most relevant thing they did and a number, pick the two or three requirements that matter instead of walking the posting's list, one honest sentence on why this job, and a one-line close with no thank-you paragraph.
 
 ### A real run
 

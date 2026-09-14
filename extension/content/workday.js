@@ -9,7 +9,8 @@ const Workday = (() => {
   }
 
   function isPosting() {
-    return !isApplication() && location.href.includes(WD.pages.postingUrlPattern);
+    if (isApplication()) return false;
+    return WD.pages.postingUrlPattern.test(location.href) || !!document.querySelector(WD.pages.applyButton);
   }
 
   function _reviewHeading() {
@@ -17,13 +18,20 @@ const Workday = (() => {
     return headings.find(h => h.textContent.toLowerCase().includes("review")) || null;
   }
 
+  // Workday renders labelled facts as <dl><dt>locations</dt><dd>London</dd></dl>; textContent glues the label on.
+  function _fieldText(el) {
+    const dds = Array.from(el.querySelectorAll("dd"));
+    if (dds.length) return dds.map(d => d.textContent.trim()).filter(Boolean).join(", ");
+    return el.textContent.trim();
+  }
+
   function _fieldFromPair(pair) {
     const first = document.querySelector(pair.tryFirst);
-    const text = first ? first.textContent.trim() : "";
+    const text = first ? _fieldText(first) : "";
     if (text) return text;
     if (!pair.fallback) return "";
     const el = document.querySelector(pair.fallback);
-    return el ? el.textContent.trim() : "";
+    return el ? _fieldText(el) : "";
   }
 
   function _description() {
@@ -35,14 +43,16 @@ const Workday = (() => {
     return body.slice(0, 12000);
   }
 
-  // Appendix A: company is the tab title before the first separator, else the site subdomain.
+  // Company: tab title before the first separator; else the tenant segment of the path (/en-US/EDFTrading/details/...),
+  // which keeps its casing unlike the subdomain; else the subdomain. The panel field stays editable either way.
   function _company() {
     const title = document.title;
     const dash = title.indexOf(" - ");
     const pipe = title.indexOf(" | ");
     const candidates = [dash, pipe].filter(i => i !== -1);
     if (candidates.length) return title.slice(0, Math.min(...candidates)).trim();
-    return (location.hostname.split(".")[0] || "").trim();
+    const site = location.pathname.split("/").filter(Boolean).find(s => !/^[a-z]{2}(-[A-Z]{2})?$/.test(s));
+    return (site || location.hostname.split(".")[0] || "").trim();
   }
 
   function scrape() {

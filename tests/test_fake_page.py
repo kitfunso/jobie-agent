@@ -60,7 +60,14 @@ def test_scrape_posting(page):
     assert posting["title"] == "Senior Data Engineer"
     assert posting["company"] == "Sample Co"
     assert "freight and pricing" in posting["description"]
-    assert posting["location"]
+    assert posting["location"] == "London, United Kingdom"
+
+
+def test_posting_url_pattern_accepts_details_and_job(page):
+    load_step(page)
+    for path in ["/en-US/EDFTrading/details/Senior-Quantitative-Analyst_JR1001455", "/en-US/Site/job/Role_R123"]:
+        assert page.evaluate("p => WD.pages.postingUrlPattern.test('https://x.myworkdayjobs.com' + p)", path) is True
+    assert page.evaluate("WD.pages.postingUrlPattern.test('https://x.myworkdayjobs.com/en-US/Site')") is False
 
 
 def test_fill_info_step(page):

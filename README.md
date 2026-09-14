@@ -94,7 +94,7 @@ The Python side is FastAPI on `127.0.0.1:8765` with four endpoints: `GET /health
 
 ## Limitations
 
-- Workday selectors have been verified against the bundled fake page in `extension/test/fake-workday.html`. Real Workday tenants vary. Fields the script cannot find are listed under Skipped after a fill and you type them by hand.
+- Workday selectors have been verified against the bundled fake page in `extension/test/fake-workday.html` and, for the posting page only, one real tenant (edftrading.wd1). Application form selectors come from open-source fillers and are not yet checked on a live tenant. Real Workday tenants vary. Fields the script cannot find are listed under Skipped after a fill and you type them by hand.
 - No account creation and no sign-in. Workday's apply flow needs an account on each employer's tenant, and that step stays manual on purpose.
 - The API key and profile live in `chrome.storage.local` as plaintext. Anyone with access to your Chrome profile can read them. Use a key you can revoke.
 - The CV PDF needs a text layer. Scans and image-only PDFs are rejected with a clear error.

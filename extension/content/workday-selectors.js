@@ -14,13 +14,13 @@ const WD = {
     selfIdentification: 'div[data-automation-id="selfIdentificationPage"]',
     // UNVERIFIED: no dedicated container; detect by an h2 whose text contains "review"
     reviewHeading: "h2",
-    // UNVERIFIED: posting page has a "/job/" URL segment and no application container present
-    postingUrlPattern: "/job/",
+    // Verified on edftrading.wd1: search page with a details panel uses /details/, standalone postings use /job/
+    postingUrlPattern: /\/(job|details)\//,
   },
   posting: {
     title: { tryFirst: '[data-automation-id="jobPostingHeader"]', fallback: "h1" },
     description: { tryFirst: '[data-automation-id="jobPostingDescription"]', fallback: "main" },
-    location: { tryFirst: '[data-automation-id="locations"]', fallback: "" },
+    location: { tryFirst: '[data-automation-id="jobDetails"] [data-automation-id="locations"]', fallback: '[data-automation-id="locations"]' },
   },
   fields: {
     firstName: 'input[data-automation-id="legalNameSection_firstName"]',

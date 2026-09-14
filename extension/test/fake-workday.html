@@ -8,12 +8,16 @@
 <div id="app"></div>
 
 <template id="tpl-posting">
-  <h1 data-automation-id="jobPostingHeader">Senior Data Engineer</h1>
-  <div data-automation-id="locations">London, United Kingdom</div>
-  <div data-automation-id="jobPostingDescription">
-    <p>We are looking for a Senior Data Engineer to own our freight and pricing data pipelines.</p>
-    <p>You will build and run Python and SQL jobs against a multi-terabyte lake and cut error rates through better reconciliation.</p>
-    <p>Experience with cloud data warehouses and a production on-call rotation is expected.</p>
+  <!-- mirrors edftrading.wd1: h2 header, apply link, location as dl/dt/dd with an icon-only aria-hidden sibling -->
+  <div data-automation-id="jobDetails">
+    <h2 data-automation-id="jobPostingHeader">Senior Data Engineer</h2>
+    <a data-automation-id="adventureButton" href="#apply">Apply</a>
+    <div data-automation-id="locations"><div aria-hidden="true"></div><dl><dt>locations</dt><dd>London, United Kingdom</dd></dl></div>
+    <div data-automation-id="jobPostingDescription">
+      <p>We are looking for a Senior Data Engineer to own our freight and pricing data pipelines.</p>
+      <p>You will build and run Python and SQL jobs against a multi-terabyte lake and cut error rates through better reconciliation.</p>
+      <p>Experience with cloud data warehouses and a production on-call rotation is expected.</p>
+    </div>
   </div>
 </template>
 

@@ -21,7 +21,7 @@ Then in Chrome: open `chrome://extensions`, turn on **Developer mode**, click **
 
 In the panel:
 
-1. Pick a provider under **Settings** and click **Save**. Leave the key blank to use the one in `.env`.
+1. Click the **1 Set up once** row to open it. Pick a provider under **Settings** and click **Save**. Leave the key blank to use the one in `.env`.
 2. Fill in **Profile** and click **Save**.
 3. Upload your CV as a PDF under **CV**. It needs a text layer, so a scanned image will be rejected.
 4. Open a Workday posting and click **Read this posting**. Edit the fields if the scrape got something wrong.
@@ -29,6 +29,8 @@ In the panel:
 6. Click **Apply** on the posting yourself and sign in. On the first form page click **Run to review**. It fills each page, presses Save and Continue, and stops on the Review page, on a Workday validation error, or on a page it does not recognise. Fix that page by hand and click Run to review again. **Fill this page** still fills one page without moving on.
 
 Steps 1 to 3 are one-time. Profile and CV stay in the extension's storage, so the next application is steps 4 to 6. Tailoring is the only step that spends tokens, and Run to review runs it for you when there is no tailored output yet for the posting you read.
+
+Each numbered stage collapses when you click its heading, and the panel remembers which ones you left open. Stage 1 folds to a one-line row once Settings, Profile and CV are all saved. The posting fields and the tailored output sit behind **Posting details** and **Letter and CV** so the two buttons you use most stay on screen.
 
 ## The anti-slop loop
 

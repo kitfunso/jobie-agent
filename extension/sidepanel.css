@@ -55,11 +55,16 @@ a{color:var(--accent)}
 
 /* stages */
 .stage{padding:0 var(--sp-4) var(--sp-5)}
-.stage-heading{display:flex;align-items:baseline;gap:var(--sp-3);font-size:var(--fs-4);font-weight:600;padding:var(--sp-5) 0 var(--sp-3);border-top:1px solid var(--hairline);margin-bottom:var(--sp-4)}
+.stage-heading{display:flex;align-items:center;gap:var(--sp-3);font-size:var(--fs-4);font-weight:600;padding:var(--sp-5) 0 var(--sp-3);border-top:1px solid var(--hairline);margin-bottom:var(--sp-4);cursor:pointer;user-select:none}
 .stage-num{font-family:var(--font-mono);color:var(--accent);font-size:var(--fs-2)}
 
+/* chevron: shared by stage headings, the stage-1 folded row and the stage-2 details summaries */
+.chevron{margin-left:auto;font-size:var(--fs-2);color:var(--muted);display:inline-block;transform:rotate(-90deg);transition:transform 150ms ease-out}
+[aria-expanded="true"] > .chevron{transform:rotate(0deg)}
+details[open] > summary > .chevron{transform:rotate(0deg)}
+
 /* stage 1 fold */
-.stage-folded{display:flex;align-items:center;gap:var(--sp-3);margin:var(--sp-4);padding:var(--sp-3) var(--sp-4);border:1px solid var(--hairline);border-radius:var(--r-plate);font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:var(--fs-2)}
+.stage-folded{display:flex;align-items:center;gap:var(--sp-3);margin:var(--sp-4);padding:var(--sp-3) var(--sp-4);border:1px solid var(--hairline);border-radius:var(--r-plate);font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:var(--fs-2);cursor:pointer;user-select:none}
 .stage-folded[hidden]{display:none}
 .fold-summary{flex:1;color:var(--ink)}
 
@@ -68,7 +73,6 @@ legend{width:100%;font-size:var(--fs-1);text-transform:uppercase;letter-spacing:
 
 /* form controls */
 .field{margin-bottom:var(--sp-4)}
-.field--top{margin-top:var(--sp-4)}
 label{display:block;font-size:var(--fs-1);color:var(--muted);font-weight:500;margin-bottom:var(--sp-1)}
 input,select,textarea{width:100%;font-family:var(--font-body);font-size:var(--fs-2);color:var(--ink);background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-input);padding:var(--sp-2) var(--sp-3);min-height:28px}
 textarea{resize:vertical;line-height:1.5}
@@ -97,18 +101,27 @@ input[type="file"]{border:1px dashed var(--hairline);border-radius:var(--r-input
 }
 @keyframes beam-rotate{ to{ --a:360deg; } }
 
-/* bento (stage 2) */
-.bento{display:grid;grid-template-columns:repeat(2, 1fr);grid-auto-flow:dense;gap:1px;background:var(--hairline);border-top:1px solid var(--hairline);border-bottom:1px solid var(--hairline)}
-.bento-cell{background:var(--bg);padding:var(--sp-4);grid-column:span 1}
-.bento-cell--span2{grid-column:span 2}
-.bento-cell--receipt{grid-column:span 2;background:var(--bg-2);border-radius:var(--r-plate)}
-.bento-cell h3{font-size:var(--fs-2);font-weight:600;margin-bottom:var(--sp-2)}
-.bento-cell ul{margin:0;padding-left:var(--sp-5);font-size:var(--fs-2)}
-.bento-cell li{margin-bottom:var(--sp-2)}
+/* stage 2: actions first, details collapsed by default */
+.posting-summary{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:var(--fs-1);color:var(--muted);margin:var(--sp-2) 0}
+.posting-summary[hidden]{display:none}
+#tailor-btn{margin-top:var(--sp-3)}
 .pdf-links{display:flex;gap:var(--sp-5)}
 
+/* collapsible plates: posting details, output (letter/CV/checks) */
+.stage-details{background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-plate);margin:var(--sp-3) 0}
+.stage-details summary{list-style:none;cursor:pointer;font-family:var(--font-mono);font-size:var(--fs-1);color:var(--muted);padding:var(--sp-3);display:flex;align-items:center;gap:var(--sp-2)}
+.stage-details summary::-webkit-details-marker{display:none}
+.stage-details[open] summary{border-bottom:1px solid var(--hairline)}
+.stage-details .details-body{padding:var(--sp-4) var(--sp-3)}
+
+.output-columns{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-4);margin-bottom:var(--sp-4)}
+.output-columns h3{font-size:var(--fs-2);font-weight:600;margin-bottom:var(--sp-2)}
+.output-columns ul{margin:0;padding-left:var(--sp-5);font-size:var(--fs-2)}
+.output-columns li{margin-bottom:var(--sp-2)}
+
 /* receipt: each check is its own plate inside the receipt cell */
-#rounds{display:flex;flex-direction:column;gap:var(--sp-2)}
+#rounds{display:flex;flex-direction:column;gap:var(--sp-2);background:var(--bg-2);border-radius:var(--r-plate);padding:var(--sp-3);margin:var(--sp-3) 0}
+#rounds:empty{display:none;padding:0;margin:0}
 .round{font-family:var(--font-mono);font-size:var(--fs-1);background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-plate);padding:var(--sp-2) var(--sp-3)}
 .round summary{cursor:pointer;list-style:none;color:var(--ink);display:flex;align-items:center;gap:var(--sp-2)}
 .round summary::-webkit-details-marker{display:none}

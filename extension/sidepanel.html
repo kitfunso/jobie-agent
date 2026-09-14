@@ -26,13 +26,14 @@
     <div id="status" class="status" hidden></div>
 
     <section class="stage stage-1">
-      <div class="stage-folded" id="setup-folded" hidden>
+      <div class="stage-folded" id="setup-folded" role="button" tabindex="0" aria-expanded="false" hidden>
         <span class="fold-summary" id="fold-summary"></span>
+        <span class="chevron" aria-hidden="true">&#9662;</span>
         <button type="button" class="btn btn-text" id="setup-edit">Edit</button>
       </div>
 
       <div class="stage-unfolded" id="setup-unfolded">
-        <h2 class="stage-heading"><span class="stage-num">1</span> Set up once</h2>
+        <h2 class="stage-heading" id="setup-heading" role="button" tabindex="0" aria-expanded="true"><span class="stage-num">1</span> Set up once<span class="chevron" aria-hidden="true">&#9662;</span></h2>
 
         <fieldset>
           <legend>Settings</legend>
@@ -104,77 +105,87 @@
     </section>
 
     <section class="stage stage-2">
-      <h2 class="stage-heading"><span class="stage-num">2</span> This posting</h2>
+      <h2 class="stage-heading" id="posting-heading" role="button" tabindex="0" aria-expanded="true"><span class="stage-num">2</span> This posting<span class="chevron" aria-hidden="true">&#9662;</span></h2>
 
-      <div class="bento">
-        <div class="bento-cell bento-cell--span2">
-          <button type="button" class="btn btn-secondary" id="read-posting">Read this posting</button>
-          <div class="field field--top">
-            <label for="posting-title">Title</label>
-            <input id="posting-title" type="text">
+      <div id="posting-body">
+        <button type="button" class="btn btn-secondary" id="read-posting">Read this posting</button>
+
+        <p id="posting-summary" class="posting-summary" hidden></p>
+
+        <details id="posting-details" class="stage-details">
+          <summary>Posting details<span class="chevron" aria-hidden="true">&#9662;</span></summary>
+          <div class="details-body">
+            <div class="field">
+              <label for="posting-title">Title</label>
+              <input id="posting-title" type="text">
+            </div>
+            <div class="field">
+              <label for="posting-company">Company</label>
+              <input id="posting-company" type="text">
+            </div>
+            <div class="field">
+              <label for="posting-location">Location</label>
+              <input id="posting-location" type="text">
+            </div>
+            <div class="field">
+              <label for="posting-description">Description</label>
+              <textarea id="posting-description" rows="4"></textarea>
+            </div>
           </div>
-          <div class="field">
-            <label for="posting-company">Company</label>
-            <input id="posting-company" type="text">
+        </details>
+
+        <button type="button" class="btn btn-primary" id="tailor-btn">Tailor CV and write letter</button>
+
+        <div id="rounds"></div>
+
+        <details id="output-details" class="stage-details">
+          <summary>Letter and CV<span class="chevron" aria-hidden="true">&#9662;</span></summary>
+          <div class="details-body">
+            <div class="field">
+              <label for="letter-text">Cover letter</label>
+              <textarea id="letter-text" rows="6"></textarea>
+            </div>
+            <div class="field">
+              <label for="cv-markdown">CV (markdown)</label>
+              <textarea id="cv-markdown" rows="5"></textarea>
+            </div>
+            <div class="output-columns">
+              <div>
+                <h3>Changes</h3>
+                <ul id="changes-list"></ul>
+              </div>
+              <div>
+                <h3>Gaps</h3>
+                <ul id="gaps-list"></ul>
+              </div>
+            </div>
+            <div class="pdf-links">
+              <a id="cv-pdf-link" href="#" target="_blank" hidden>CV PDF</a>
+              <a id="letter-pdf-link" href="#" target="_blank" hidden>Letter PDF</a>
+            </div>
           </div>
-          <div class="field">
-            <label for="posting-location">Location</label>
-            <input id="posting-location" type="text">
-          </div>
-          <div class="field">
-            <label for="posting-description">Description</label>
-            <textarea id="posting-description" rows="4"></textarea>
-          </div>
-          <button type="button" class="btn btn-primary" id="tailor-btn">Tailor CV and write letter</button>
-        </div>
-
-        <div class="bento-cell bento-cell--receipt">
-          <div id="rounds"></div>
-        </div>
-
-        <div class="bento-cell bento-cell--span2">
-          <label for="letter-text">Cover letter</label>
-          <textarea id="letter-text" rows="6"></textarea>
-        </div>
-
-        <div class="bento-cell bento-cell--span2">
-          <label for="cv-markdown">CV (markdown)</label>
-          <textarea id="cv-markdown" rows="5"></textarea>
-        </div>
-
-        <div class="bento-cell">
-          <h3>Changes</h3>
-          <ul id="changes-list"></ul>
-        </div>
-
-        <div class="bento-cell">
-          <h3>Gaps</h3>
-          <ul id="gaps-list"></ul>
-        </div>
-
-        <div class="bento-cell bento-cell--span2 pdf-links">
-          <a id="cv-pdf-link" href="#" target="_blank" hidden>CV PDF</a>
-          <a id="letter-pdf-link" href="#" target="_blank" hidden>Letter PDF</a>
-        </div>
+        </details>
       </div>
     </section>
 
     <section class="stage stage-3">
-      <h2 class="stage-heading"><span class="stage-num">3</span> Apply</h2>
+      <h2 class="stage-heading" id="apply-heading" role="button" tabindex="0" aria-expanded="true"><span class="stage-num">3</span> Apply<span class="chevron" aria-hidden="true">&#9662;</span></h2>
 
-      <div class="apply-actions">
-        <button type="button" class="btn btn-secondary" id="fill-btn">Fill this page</button>
-        <button type="button" class="btn btn-primary" id="run-btn">Run to review</button>
-        <div class="stop-row">
-          <button type="button" class="btn btn-text btn-text--danger" id="stop-btn">Stop</button>
+      <div id="apply-body">
+        <div class="apply-actions">
+          <button type="button" class="btn btn-secondary" id="fill-btn">Fill this page</button>
+          <button type="button" class="btn btn-primary" id="run-btn">Run to review</button>
+          <div class="stop-row">
+            <button type="button" class="btn btn-text btn-text--danger" id="stop-btn">Stop</button>
+          </div>
         </div>
+
+        <p class="note">Run to review fills each page, presses Save and Continue, and stops at the Review page or as soon as a page needs you. jobie-agent never presses Submit.</p>
+
+        <ul id="run-log" class="run-log"></ul>
+
+        <div id="fill-results"></div>
       </div>
-
-      <p class="note">Run to review fills each page, presses Save and Continue, and stops at the Review page or as soon as a page needs you. jobie-agent never presses Submit.</p>
-
-      <ul id="run-log" class="run-log"></ul>
-
-      <div id="fill-results"></div>
     </section>
 
   </div>

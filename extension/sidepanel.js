@@ -140,6 +140,14 @@ async function onCvFile(e) {
   updateCvInfo(text);
 }
 
+function updatePostingSummary() {
+  const title = $("posting-title").value;
+  const el = $("posting-summary");
+  if (!title) { el.hidden = true; el.textContent = ""; return; }
+  el.textContent = [title, $("posting-company").value, $("posting-location").value].filter(Boolean).join(" · ");
+  el.hidden = false;
+}
+
 async function onReadPosting() {
   clearStatus();
   const tab = await getActiveTab();
@@ -153,6 +161,7 @@ async function onReadPosting() {
   $("posting-location").value = p.location || "";
   $("posting-description").value = p.description || "";
   lastPostingUrl = p.url || tab.url || "";
+  updatePostingSummary();
 }
 
 function renderRounds(rounds) {
@@ -207,6 +216,7 @@ async function onTailor() {
   renderList("gaps-list", data.gaps);
   const tailored = { cv_pdf: data.cv_pdf || "", letter_pdf: data.letter_pdf || "", cover_letter: data.cover_letter || "", posting_url: lastPostingUrl };
   applyTailored(tailored);
+  $("output-details").open = true;
   // session storage so the result survives the panel closing while the user signs in and clicks Apply
   await chrome.storage.session.set({ tailored });
   setShaderSpeed(0.25);
@@ -327,26 +337,69 @@ async function onRunToReview() {
   setShaderSpeed(0.25);
 }
 
-// Folds stage 1 once settings, profile and CV are all saved; Edit unfolds it again.
-async function renderSetupFold() {
-  const store = await chrome.storage.local.get(["settings", "profile", "cv_text", "cv_file", "setupFolded"]);
-  const allSaved = !!(store.settings && store.profile && store.cv_text);
-  const folded = allSaved && !!store.setupFolded;
-  $("setup-folded").hidden = !folded;
-  $("setup-unfolded").hidden = folded;
-  if (folded) {
-    const s = store.settings || {};
-    const p = store.profile || {};
-    const name = [p.first_name, p.last_name].filter(Boolean).join(" ");
-    const cvName = (store.cv_file && store.cv_file.name) || "";
-    $("fold-summary").textContent = ["1 Set up once", s.name || "", name, cvName].filter(Boolean).join(" · ");
-  }
+// Every stage heading collapses/expands independently; state persists under stageOpen.
+// Stage 1 starts closed (the folded one-line row) until the user opens it by hand.
+const DEFAULT_STAGE_OPEN = { setup: false, posting: true, apply: true };
+
+function getStageOpen(store) {
+  return { ...DEFAULT_STAGE_OPEN, ...(store.stageOpen || {}) };
 }
 
-async function maybeFoldSetup() {
-  const store = await chrome.storage.local.get(["settings", "profile", "cv_text"]);
-  if (store.settings && store.profile && store.cv_text) await chrome.storage.local.set({ setupFolded: true });
-  await renderSetupFold();
+async function renderStages() {
+  const store = await chrome.storage.local.get(["settings", "profile", "cv_text", "cv_file", "stageOpen"]);
+  const state = getStageOpen(store);
+
+  $("setup-folded").hidden = state.setup;
+  $("setup-unfolded").hidden = !state.setup;
+  $("setup-folded").setAttribute("aria-expanded", String(state.setup));
+  $("setup-heading").setAttribute("aria-expanded", String(state.setup));
+  const s = store.settings || {};
+  const p = store.profile || {};
+  const name = [p.first_name, p.last_name].filter(Boolean).join(" ");
+  const cvName = (store.cv_file && store.cv_file.name) || "";
+  const parts = [s.name, name, cvName].filter(Boolean);
+  $("fold-summary").textContent = "1 Set up once" + (parts.length ? " · " + parts.join(" · ") : " · not set up yet");
+
+  $("posting-body").hidden = !state.posting;
+  $("posting-heading").setAttribute("aria-expanded", String(state.posting));
+  $("apply-body").hidden = !state.apply;
+  $("apply-heading").setAttribute("aria-expanded", String(state.apply));
+}
+
+async function toggleStage(name) {
+  const store = await chrome.storage.local.get(["stageOpen"]);
+  const state = getStageOpen(store);
+  state[name] = !state[name];
+  await chrome.storage.local.set({ stageOpen: state });
+  await renderStages();
+}
+
+async function openSetup() {
+  const store = await chrome.storage.local.get(["stageOpen"]);
+  const state = getStageOpen(store);
+  state.setup = true;
+  await chrome.storage.local.set({ stageOpen: state });
+  await renderStages();
+}
+
+// Auto-closes stage 1 once settings, profile and CV are all saved.
+async function maybeCloseSetup() {
+  const store = await chrome.storage.local.get(["settings", "profile", "cv_text", "stageOpen"]);
+  if (store.settings && store.profile && store.cv_text) {
+    const state = getStageOpen(store);
+    state.setup = false;
+    await chrome.storage.local.set({ stageOpen: state });
+  }
+  await renderStages();
+}
+
+function isActivationKey(e) { return e.key === "Enter" || e.key === " " || e.key === "Spacebar"; }
+
+function bindToggle(el, handler) {
+  el.addEventListener("click", handler);
+  el.addEventListener("keydown", (e) => {
+    if (isActivationKey(e)) { e.preventDefault(); handler(); }
+  });
 }
 
 async function init() {
@@ -357,13 +410,17 @@ async function init() {
   const session = await chrome.storage.session.get(["tailored"]);
   if (session.tailored) applyTailored(session.tailored);
   checkServer();
-  await renderSetupFold();
+  await renderStages();
 
   $("provider").addEventListener("change", updateModelPlaceholder);
-  $("save-settings").addEventListener("click", async () => { await saveSettings(); await maybeFoldSetup(); });
-  $("save-profile").addEventListener("click", async () => { await saveProfile(); await maybeFoldSetup(); });
-  $("cv-file").addEventListener("change", async (e) => { await onCvFile(e); await maybeFoldSetup(); });
-  $("setup-edit").addEventListener("click", async () => { await chrome.storage.local.set({ setupFolded: false }); await renderSetupFold(); });
+  $("save-settings").addEventListener("click", async () => { await saveSettings(); await maybeCloseSetup(); });
+  $("save-profile").addEventListener("click", async () => { await saveProfile(); await maybeCloseSetup(); });
+  $("cv-file").addEventListener("change", async (e) => { await onCvFile(e); await maybeCloseSetup(); });
+  $("setup-edit").addEventListener("click", openSetup);
+  bindToggle($("setup-folded"), openSetup);
+  bindToggle($("setup-heading"), () => toggleStage("setup"));
+  bindToggle($("posting-heading"), () => toggleStage("posting"));
+  bindToggle($("apply-heading"), () => toggleStage("apply"));
   $("read-posting").addEventListener("click", onReadPosting);
   $("tailor-btn").addEventListener("click", onTailor);
   $("fill-btn").addEventListener("click", onFill);

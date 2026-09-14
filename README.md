@@ -26,7 +26,9 @@ In the panel:
 3. Upload your CV as a PDF under **CV**. It needs a text layer, so a scanned image will be rejected.
 4. Open a Workday posting and click **Read this posting**. Edit the fields if the scrape got something wrong.
 5. Click **Tailor CV and write letter**. This takes 30 to 90 seconds. Read the rounds, the letter, the CV, the changes and the gaps.
-6. Click **Apply** on the posting yourself and sign in. On each form page, click **Fill this page**, check the fields, then click Workday's own Save and Continue.
+6. Click **Apply** on the posting yourself and sign in. On the first form page click **Run to review**. It fills each page, presses Save and Continue, and stops on the Review page, on a Workday validation error, or on a page it does not recognise. Fix that page by hand and click Run to review again. **Fill this page** still fills one page without moving on.
+
+Steps 1 to 3 are one-time. Profile and CV stay in the extension's storage, so the next application is steps 4 to 6. Tailoring is the only step that spends tokens, and Run to review runs it for you when there is no tailored output yet for the posting you read.
 
 ## The anti-slop loop
 
@@ -96,7 +98,7 @@ Keys travel from the panel to the local server on 127.0.0.1 and go straight into
 
 ## It never presses Submit
 
-The content script in `extension/content/workday.js` sets input values, picks dropdown options and attaches files. It has no code path that clicks Save and Continue, Next or Submit. Every page advance is your click. The panel says so under Apply, and the tests in `tests/test_fake_page.py` drive the fill against a fake Workday page to check that nothing else moves.
+The content script in `extension/content/workday.js` sets input values, picks dropdown options and attaches files. Run to review presses one button per page: the footer button whose text is exactly Save and Continue, Next or Continue. Workday keeps the same automation id on that button on the Review page, where it reads Submit, so the guard is the text: `advance()` refuses on the Review page and refuses any button whose text contains Submit, before it clicks anything. The panel loop also stops on a validation message, on a page it cannot name, after eight pages, or when the page does not change after the click. The tests in `tests/test_fake_page.py` drive this against a fake Workday page whose Review step has a Submit button under the real automation id, and assert it is never clicked.
 
 ## Built with Strands Agents
 
@@ -115,6 +117,7 @@ The Python side is FastAPI on `127.0.0.1:8765` with four endpoints: `GET /health
 - The CV PDF needs a text layer. Scans and image-only PDFs are rejected with a clear error.
 - The checker is deterministic, so it catches only what it has a rule for. It will not catch a made-up fact. Read the letter before you send it. The gaps list is there to help.
 - One posting at a time. There is no queue and no history.
+- Run to review's footer button and error selectors come from open-source fillers and are not yet checked on a live tenant. If Workday's button has a different id, the text fallback finds it by its label. Voluntary disclosures and self-identification pages are advanced without being filled, since those answers are yours to give.
 
 ## Tests
 

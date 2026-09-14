@@ -19,8 +19,8 @@ jobie-agent is a Chrome extension plus a local Strands agent.
 1. Open a posting on any myworkdayjobs.com site. The side panel reads it.
 2. Click Tailor. The agent rewrites your CV for that role and writes a cover letter using only facts from your CV. Requirements your CV does not show go into a gaps list instead of being invented.
 3. A deterministic checker scans both drafts for named AI-writing patterns: banned words, cover letter cliches, "not just X but Y", colon reveals, hedging stacks, em dashes, robotic sentence rhythm and more. Every finding names the rule and quotes the sentence. Zero findings is the only pass. The panel shows every check: the ones the model ran on its own draft mid-turn, and the outside pass.
-4. Click Apply on the posting yourself. On each form page, click Fill. It sets the fields, picks the dropdowns and attaches the PDFs, then tells you what it could not find.
-5. It never presses Submit. You read every page and submit it yourself.
+4. Click Apply on the posting yourself and sign in. Then click Run to review. It fills each page, picks the dropdowns, attaches the PDFs, presses Save and Continue, and logs what it could not find. Profile and CV are saved once, so each later application is Read, Run, Review.
+5. It stops on the Review page, on a validation error, or on a page it does not recognise. Workday's Submit button shares an id with Save and Continue, so the extension reads the button text before every click and refuses anything that says Submit. You read the review page and submit it yourself.
 
 Bring your own key: Amazon Bedrock, Anthropic or OpenAI, picked in the panel. Nothing runs anywhere but your machine and your chosen model provider.
 

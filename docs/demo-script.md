@@ -32,23 +32,19 @@ Say: "Gaps are things the posting asks for that my CV does not show. The agent l
 
 ## 1:50 to 2:50. Fill the form
 
-Action: click **Apply** on the posting, then **Apply Manually**. On My Information, click **Fill this page**.
+Action: click **Apply** on the posting, then **Apply Manually**. On My Information, click **Run to review**.
 
-Show: name, email, phone, country dropdown filling. Show the Filled and Skipped lists.
+Show: name, email, phone, country dropdown filling, then the page advancing on its own. The run log in the panel adds a line per page: filled, pressed Save and Continue, next page.
 
-Say: "On each page I click Fill. It sets the fields and tells me what it could not find. Then I press Save and Continue myself."
+Say: "One click. It fills each page, presses Save and Continue, and tells me what it could not find. Profile and CV were saved once, so every application after this is Read, Run, Review."
 
-Action: click Save and Continue by hand. On My Experience, click **Fill this page**.
-
-Show: the CV PDF attached, the letter in the text box or attached.
+Show: My Experience with the CV PDF attached and the letter in the text box or attached.
 
 ## 2:50 to 3:10. It stops here
 
-Action: advance to the Review page by hand.
+Show: the run stops on the Review page. The panel says "Review page. Read it through and press Submit yourself."
 
-Show: the Review page and the panel note "jobie-agent never presses Submit".
-
-Say: "It never presses Submit. I read the whole thing and submit it myself."
+Say: "The Submit button sits under the same Workday id as Save and Continue. The extension reads the label before it clicks and refuses anything that says Submit. I read the whole thing and submit it myself."
 
 ## 3:10 to 4:00. How it is built
 

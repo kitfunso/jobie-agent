@@ -9,6 +9,7 @@ const MODEL_DEFAULTS = {
 let lastCvPdfPath = "";
 let lastLetterPdfPath = "";
 let lastPostingUrl = "";
+let lastTailoredUrl = "";
 let runStopped = false;
 const MAX_PAGES = 8;
 const PAGE_CHANGE_TIMEOUT_MS = 20000;
@@ -209,7 +210,8 @@ async function onTailor() {
 function applyTailored(t) {
   lastCvPdfPath = t.cv_pdf || "";
   lastLetterPdfPath = t.letter_pdf || "";
-  lastPostingUrl = lastPostingUrl || t.posting_url || "";
+  lastTailoredUrl = t.posting_url || "";
+  lastPostingUrl = lastPostingUrl || lastTailoredUrl;
   $("letter-text").value = t.cover_letter || "";
   const cvLink = $("cv-pdf-link"), letterLink = $("letter-pdf-link");
   cvLink.href = SERVER + lastCvPdfPath; cvLink.hidden = !lastCvPdfPath;
@@ -283,9 +285,10 @@ async function onRunToReview() {
   clearStatus();
   $("run-log").textContent = "";
   runStopped = false;
-  if (!(lastCvPdfPath && lastLetterPdfPath)) {
+  // a new posting was read since the last tailor: reuse nothing from the previous application
+  if (!(lastCvPdfPath && lastLetterPdfPath) || lastTailoredUrl !== lastPostingUrl) {
     if (!$("posting-description").value) { showStatus("Open the posting and click Read this posting first, then Run to review."); return; }
-    logRun("Tailoring CV and letter first (the only step that spends tokens)");
+    logRun("Tailoring CV and letter for this posting (the only step that spends tokens)");
     if (!(await onTailor())) return;
     logRun("Tailored.");
   }

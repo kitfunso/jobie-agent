@@ -1,11 +1,18 @@
 // extension/content/workday.js
 const Workday = (() => {
+  const ADVANCE_TEXT = /^(save and continue|next|continue)$/i;
+
+  function _step() {
+    if (document.querySelector(WD.pages.myInformation)) return "myInformation";
+    if (document.querySelector(WD.pages.myExperience)) return "myExperience";
+    if (document.querySelector(WD.pages.voluntaryDisclosures)) return "voluntaryDisclosures";
+    if (document.querySelector(WD.pages.selfIdentification)) return "selfIdentification";
+    if (_reviewHeading()) return "review";
+    return "unknown";
+  }
+
   function isApplication() {
-    return !!(document.querySelector(WD.pages.myInformation) ||
-      document.querySelector(WD.pages.myExperience) ||
-      document.querySelector(WD.pages.voluntaryDisclosures) ||
-      document.querySelector(WD.pages.selfIdentification) ||
-      _reviewHeading());
+    return _step() !== "unknown";
   }
 
   function isPosting() {
@@ -141,13 +148,42 @@ const Workday = (() => {
   }
 
   async function fill(data) {
-    if (document.querySelector(WD.pages.myInformation)) return _fillMyInformation(data);
-    if (document.querySelector(WD.pages.myExperience)) return _fillMyExperience(data);
-    if (document.querySelector(WD.pages.voluntaryDisclosures)) return { ok: true, filled: [], skipped: ["voluntary disclosures: answer by hand"] };
-    if (document.querySelector(WD.pages.selfIdentification)) return { ok: true, filled: [], skipped: ["self identify: answer by hand"] };
-    if (_reviewHeading()) return { ok: true, filled: [], skipped: ["review page: press Submit yourself"] };
+    const step = _step();
+    if (step === "myInformation") return _fillMyInformation(data);
+    if (step === "myExperience") return _fillMyExperience(data);
+    if (step === "voluntaryDisclosures") return { ok: true, filled: [], skipped: ["voluntary disclosures: answer by hand"] };
+    if (step === "selfIdentification") return { ok: true, filled: [], skipped: ["self identify: answer by hand"] };
+    if (step === "review") return { ok: true, filled: [], skipped: ["review page: press Submit yourself"] };
     return { ok: true, filled: [], skipped: ["unrecognized step: no known Workday page container found"] };
   }
 
-  return { isPosting, isApplication, scrape, fill };
+  function _errors() {
+    return Array.from(document.querySelectorAll(WD.pages.errorMessage)).map(e => e.textContent.trim()).filter(Boolean);
+  }
+
+  function _nextButton() {
+    const byId = document.querySelector(WD.pages.nextButton);
+    if (byId) return byId;
+    return Array.from(document.querySelectorAll("button")).find(b => ADVANCE_TEXT.test(b.textContent.trim())) || null;
+  }
+
+  function pageInfo() {
+    const h2 = document.querySelector("h2");
+    const button = _nextButton();
+    return { step: _step(), url: location.href, heading: h2 ? h2.textContent.trim() : "", errors: _errors(),
+             nextButton: button ? button.textContent.trim() : "" };
+  }
+
+  // The Review page's footer button is Submit under the same automation id; the text check is what keeps it unclicked.
+  function advance() {
+    if (_step() === "review") return { ok: false, reason: "review page: press Submit yourself" };
+    const button = _nextButton();
+    if (!button) return { ok: false, reason: "no Save and Continue button on this page" };
+    const text = button.textContent.trim();
+    if (/submit/i.test(text) || !ADVANCE_TEXT.test(text)) return { ok: false, reason: `the button reads "${text}", not clicking it` };
+    button.click();
+    return { ok: true, clicked: text };
+  }
+
+  return { isPosting, isApplication, scrape, fill, pageInfo, advance };
 })();

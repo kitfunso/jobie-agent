@@ -112,6 +112,37 @@ def test_fill_experience_step(page, tmp_path):
     assert "Hello" in letter_value
 
 
+def test_page_info_and_advance_report_workday_errors(page):
+    load_step(page, "info")
+    info = page.evaluate("Workday.pageInfo()")
+    assert info["step"] == "myInformation"
+    assert info["nextButton"] == "Save and Continue"
+    assert info["errors"] == []
+    # empty required field: the fake page shows an error instead of moving on, as Workday does
+    assert page.evaluate("Workday.advance()") == {"ok": True, "clicked": "Save and Continue"}
+    assert page.evaluate("Workday.pageInfo().errors") == ["First Name is required"]
+
+
+def test_advance_moves_to_the_next_step_after_a_fill(page):
+    load_step(page, "info")
+    page.evaluate("async (d) => await Workday.fill(d)", {"profile": PROFILE, "cover_letter": "", "files": []})
+    assert page.evaluate("Workday.advance()")["ok"] is True
+    page.wait_for_url(lambda url: "step=experience" in url)
+    assert page.query_selector('[data-automation-id="myExperiencePage"]') is not None
+
+
+def test_advance_never_clicks_submit_on_the_review_page(page):
+    load_step(page, "review")
+    assert page.evaluate("Workday.isApplication()") is True
+    assert page.evaluate("Workday.pageInfo().step") == "review"
+    assert page.evaluate("Workday.pageInfo().nextButton") == "Submit"
+    result = page.evaluate("Workday.advance()")
+    assert result["ok"] is False
+    assert "Submit" in result["reason"]
+    assert page.evaluate("document.body.dataset.clicked") is None
+    assert page.evaluate("document.body.dataset.submitted") is None
+
+
 def test_generic_fill(page):
     load_step(page, "info")
     result = page.evaluate(

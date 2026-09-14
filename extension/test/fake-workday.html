@@ -51,11 +51,44 @@
   </div>
 </template>
 
+<template id="tpl-review">
+  <div>
+    <h2>Review</h2>
+    <p>Check your application before you submit it.</p>
+  </div>
+</template>
+
 <script>
 (function () {
   var step = new URLSearchParams(location.search).get("step");
-  var tplId = step === "info" ? "tpl-info" : step === "experience" ? "tpl-experience" : "tpl-posting";
+  var tplId = { info: "tpl-info", experience: "tpl-experience", review: "tpl-review" }[step] || "tpl-posting";
   document.getElementById("app").appendChild(document.getElementById(tplId).content.cloneNode(true));
+
+  // Footer as on Workday: one button id on every step, reading "Save and Continue" until the Review page, where it reads "Submit".
+  var NEXT = { info: "experience", experience: "review" };
+  if (NEXT[step] || step === "review") {
+    var footer = document.createElement("div");
+    footer.setAttribute("data-automation-id", "bottom-navigation");
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.setAttribute("data-automation-id", "bottom-navigation-next-button");
+    btn.textContent = step === "review" ? "Submit" : "Save and Continue";
+    btn.addEventListener("click", function () {
+      document.body.dataset.clicked = btn.textContent;
+      if (step === "review") { document.body.dataset.submitted = "1"; return; }
+      var first = document.getElementById("firstName");
+      if (first && !first.value) {
+        var err = document.createElement("div");
+        err.setAttribute("data-automation-id", "errorMessage");
+        err.textContent = "First Name is required";
+        footer.parentElement.insertBefore(err, footer);
+        return;
+      }
+      setTimeout(function () { location.search = "?step=" + NEXT[step]; }, 200);
+    });
+    footer.appendChild(btn);
+    document.getElementById("app").appendChild(footer);
+  }
 
   function initDropdown(button, listId, options) {
     button.addEventListener("click", function () {

@@ -9,6 +9,9 @@ const MODEL_DEFAULTS = {
 let lastCvPdfPath = "";
 let lastLetterPdfPath = "";
 let lastPostingUrl = "";
+let runStopped = false;
+const MAX_PAGES = 8;
+const PAGE_CHANGE_TIMEOUT_MS = 20000;
 
 function $(id) { return document.getElementById(id); }
 
@@ -190,15 +193,24 @@ async function onTailor() {
     provider: { name: settings.name || "bedrock", api_key: settings.api_key || "", model_id: settings.model_id || "", region: settings.region || "" }
   };
   const resp = await sendToBg({ type: "api", method: "POST", path: "/tailor", body });
-  if (!resp.ok) { showStatus("Tailor failed: " + detailOf(resp)); return; }
+  if (!resp.ok) { showStatus("Tailor failed: " + detailOf(resp)); return false; }
   const data = resp.data;
   renderRounds(data.rounds);
-  $("letter-text").value = data.cover_letter || "";
   $("cv-markdown").value = data.cv_markdown || "";
   renderList("changes-list", data.changes);
   renderList("gaps-list", data.gaps);
-  lastCvPdfPath = data.cv_pdf || "";
-  lastLetterPdfPath = data.letter_pdf || "";
+  const tailored = { cv_pdf: data.cv_pdf || "", letter_pdf: data.letter_pdf || "", cover_letter: data.cover_letter || "", posting_url: lastPostingUrl };
+  applyTailored(tailored);
+  // session storage so the result survives the panel closing while the user signs in and clicks Apply
+  await chrome.storage.session.set({ tailored });
+  return true;
+}
+
+function applyTailored(t) {
+  lastCvPdfPath = t.cv_pdf || "";
+  lastLetterPdfPath = t.letter_pdf || "";
+  lastPostingUrl = lastPostingUrl || t.posting_url || "";
+  $("letter-text").value = t.cover_letter || "";
   const cvLink = $("cv-pdf-link"), letterLink = $("letter-pdf-link");
   cvLink.href = SERVER + lastCvPdfPath; cvLink.hidden = !lastCvPdfPath;
   letterLink.href = SERVER + lastLetterPdfPath; letterLink.hidden = !lastLetterPdfPath;
@@ -212,19 +224,24 @@ function renderFillResults(filled, skipped) {
   el.appendChild(f); el.appendChild(s);
 }
 
-async function onFill() {
-  clearStatus();
+async function collectFillData() {
   const files = [];
   if (lastCvPdfPath && lastLetterPdfPath) {
     const cvPdf = await sendToBg({ type: "fetch_pdf", path: lastCvPdfPath });
-    if (!cvPdf.ok) { showStatus("Could not fetch the CV PDF: " + detailOf(cvPdf)); return; }
+    if (!cvPdf.ok) { showStatus("Could not fetch the CV PDF: " + detailOf(cvPdf)); return null; }
     const letterPdf = await sendToBg({ type: "fetch_pdf", path: lastLetterPdfPath });
-    if (!letterPdf.ok) { showStatus("Could not fetch the letter PDF: " + detailOf(letterPdf)); return; }
+    if (!letterPdf.ok) { showStatus("Could not fetch the letter PDF: " + detailOf(letterPdf)); return null; }
     files.push({ name: cvPdf.name, b64: cvPdf.b64 }, { name: letterPdf.name, b64: letterPdf.b64 });
   } else {
     showStatus("No tailored PDFs yet, filling profile fields only.");
   }
-  const data = { profile: collectProfile(), cover_letter: $("letter-text").value, files };
+  return { profile: collectProfile(), cover_letter: $("letter-text").value, files };
+}
+
+async function onFill() {
+  clearStatus();
+  const data = await collectFillData();
+  if (!data) return;
   const tab = await getActiveTab();
   const injectError = await ensureContentScript(tab.id);
   if (injectError) { showStatus("Could not reach this page: " + injectError); return; }
@@ -233,11 +250,78 @@ async function onFill() {
   renderFillResults(resp.filled, resp.skipped);
 }
 
+async function pageInfo(tabId) {
+  const injectError = await ensureContentScript(tabId);
+  if (injectError) return null;
+  const resp = await sendToTab(tabId, { type: "page_info" });
+  return resp && resp.ok ? resp.info : null;
+}
+
+function pageSignature(info) { return [info.step, info.heading, info.url].join("|"); }
+
+// Workday advances in place or with a full reload; either way the content script is re-reached through pageInfo.
+async function waitForPageChange(tabId, before) {
+  const end = Date.now() + PAGE_CHANGE_TIMEOUT_MS;
+  while (Date.now() < end && !runStopped) {
+    await new Promise(r => setTimeout(r, 500));
+    const info = await pageInfo(tabId);
+    if (!info) continue;
+    if (info.errors.length) return { info, changed: false };
+    if (pageSignature(info) !== pageSignature(before)) return { info, changed: true };
+  }
+  return { info: before, changed: false };
+}
+
+function logRun(text) {
+  const li = document.createElement("li");
+  li.textContent = text;
+  $("run-log").appendChild(li);
+}
+
+// Fills known pages and presses Save and Continue until the Review page or a page that needs the user. Never Submit.
+async function onRunToReview() {
+  clearStatus();
+  $("run-log").textContent = "";
+  runStopped = false;
+  if (!(lastCvPdfPath && lastLetterPdfPath)) {
+    if (!$("posting-description").value) { showStatus("Open the posting and click Read this posting first, then Run to review."); return; }
+    logRun("Tailoring CV and letter first (the only step that spends tokens)");
+    if (!(await onTailor())) return;
+    logRun("Tailored.");
+  }
+  const data = await collectFillData();
+  if (!data) return;
+  const tab = await getActiveTab();
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    if (runStopped) { showStatus("Stopped."); return; }
+    const info = await pageInfo(tab.id);
+    if (!info) { showStatus("Could not reach this page."); return; }
+    if (info.step === "review") { logRun("Review page reached."); showStatus("Review page. Read it through and press Submit yourself."); return; }
+    if (info.step === "unknown" && page > 1) { showStatus("Stopped at a page I do not recognise. Fill it by hand, then click Run to review again."); return; }
+    if (info.step !== "unknown") {
+      const fill = await sendToTab(tab.id, { type: "fill", data });
+      if (!fill || !fill.ok) { showStatus("Fill failed: " + detailOf(fill)); return; }
+      logRun(info.step + ": filled " + fill.filled.length + ", skipped " + fill.skipped.length);
+      renderFillResults(fill.filled, fill.skipped);
+    }
+    const adv = await sendToTab(tab.id, { type: "advance" });
+    if (!adv || !adv.ok) { showStatus("Stopped: " + (adv && adv.reason ? adv.reason : detailOf(adv))); return; }
+    logRun('Pressed "' + adv.clicked + '"');
+    const next = await waitForPageChange(tab.id, info);
+    if (runStopped) { showStatus("Stopped."); return; }
+    if (next.info.errors.length) { showStatus("Workday flagged: " + next.info.errors.join("; ") + ". Fix this by hand, then click Run to review again."); return; }
+    if (!next.changed) { showStatus("Stopped: the page did not move on after Save and Continue."); return; }
+  }
+  showStatus("Stopped after " + MAX_PAGES + " pages without reaching Review.");
+}
+
 async function init() {
   const store = await chrome.storage.local.get(["settings", "profile", "cv_text", "cv_file"]);
   applySettings(store.settings || {});
   applyProfile(store.profile || {});
   updateCvInfo(store.cv_text || "");
+  const session = await chrome.storage.session.get(["tailored"]);
+  if (session.tailored) applyTailored(session.tailored);
   checkServer();
 
   $("provider").addEventListener("change", updateModelPlaceholder);
@@ -247,6 +331,8 @@ async function init() {
   $("read-posting").addEventListener("click", onReadPosting);
   $("tailor-btn").addEventListener("click", onTailor);
   $("fill-btn").addEventListener("click", onFill);
+  $("run-btn").addEventListener("click", onRunToReview);
+  $("stop-btn").addEventListener("click", () => { runStopped = true; });
 }
 
 document.addEventListener("DOMContentLoaded", () => {

@@ -14,6 +14,10 @@ const WD = {
     selfIdentification: 'div[data-automation-id="selfIdentificationPage"]',
     // UNVERIFIED: no dedicated container; detect by an h2 whose text contains "review"
     reviewHeading: "h2",
+    // UNVERIFIED: the footer button keeps this id on every step, so on the Review page it is the Submit button
+    nextButton: 'button[data-automation-id="bottom-navigation-next-button"], button[data-automation-id="pageFooterNextButton"]',
+    // UNVERIFIED: inline field errors and the page-top banner Workday shows after a failed Save and Continue
+    errorMessage: '[data-automation-id="errorMessage"], [data-automation-id="alertMessage"], [role="alert"]',
     // Verified on edftrading.wd1: search page with a details panel uses /details/, standalone postings use /job/
     postingUrlPattern: /\/(job|details)\//,
   },

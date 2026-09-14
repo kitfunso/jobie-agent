@@ -22,9 +22,9 @@ Say: "The side panel reads the posting. Nothing leaves the machine yet."
 
 Action: click **Tailor CV and write letter**. While it runs, alt-tab to the terminal so the request log shows.
 
-Show: the rounds appear. Open Round 1 and read two findings aloud. Open the last round and show zero findings.
+Show: the check rows appear. Open an **Agent self-check** row with findings and read two aloud. Open the **Loop check** row and show zero findings.
 
-Say: "The agent writes the CV and the letter from the facts in my CV. Then a deterministic checker scans them for named AI writing patterns. Here it caught a cover letter cliche and a binary contrast. It sends those back to the model, and round two comes out clean. No guessing, no score, just named rules and a zero."
+Say: "The agent writes the CV and the letter from the facts in my CV. Its one tool is a deterministic checker that scans a draft for named AI writing patterns. Here the model ran it on its own draft and it caught a banned word and an em dash. It fixed them and checked again before it answered. Then the same checker ran outside the agent and found nothing. No guessing, no score, just named rules and a zero."
 
 Show: scroll the letter. Read the first sentence aloud. Scroll to Changes and Gaps.
 

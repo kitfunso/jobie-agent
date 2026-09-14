@@ -18,7 +18,7 @@ jobie-agent is a Chrome extension plus a local Strands agent.
 
 1. Open a posting on any myworkdayjobs.com site. The side panel reads it.
 2. Click Tailor. The agent rewrites your CV for that role and writes a cover letter using only facts from your CV. Requirements your CV does not show go into a gaps list instead of being invented.
-3. A deterministic checker scans both drafts for named AI-writing patterns: banned words, cover letter cliches, "not just X but Y", colon reveals, hedging stacks, em dashes, robotic sentence rhythm and more. Every finding names the rule and quotes the sentence. Zero findings is the only pass. The panel shows each round.
+3. A deterministic checker scans both drafts for named AI-writing patterns: banned words, cover letter cliches, "not just X but Y", colon reveals, hedging stacks, em dashes, robotic sentence rhythm and more. Every finding names the rule and quotes the sentence. Zero findings is the only pass. The panel shows every check: the ones the model ran on its own draft mid-turn, and the outside pass.
 4. Click Apply on the posting yourself. On each form page, click Fill. It sets the fields, picks the dropdowns and attaches the PDFs, then tells you what it could not find.
 5. It never presses Submit. You read every page and submit it yourself.
 
@@ -27,7 +27,7 @@ Bring your own key: Amazon Bedrock, Anthropic or OpenAI, picked in the panel. No
 ## How it is built
 
 - **Strands Agents SDK.** One `strands.Agent` per request with a system prompt and one tool. `slop_check` is a `@tool` the model calls on its own draft before answering. Each call returns structured output through a Pydantic model (CV markdown, letter, changes, gaps). Tools and structured output work in the same invocation.
-- **The rewrite loop.** The same checker runs again in Python on the structured output. If findings remain it sends them back as a rewrite prompt, up to three rounds, and records each round for the UI.
+- **The rewrite loop.** The same checker runs again in Python on the structured output. If findings remain it sends them back as a rewrite prompt, up to three rounds, and records each round for the UI alongside the model's own mid-turn `slop_check` calls, read back from the Strands message history.
 - **Model providers.** `BedrockModel` with a Bedrock API key as bearer token, `AnthropicModel` and `OpenAIModel`, built per request from what the user typed in the panel or from `.env`.
 - **Server.** FastAPI on 127.0.0.1:8765. Four endpoints: health, CV parse (pypdf), tailor, and file download. PDFs rendered with reportlab.
 - **Extension.** Manifest V3, no build step. Side panel UI, a service worker that owns all HTTP, and content scripts for Workday. React-controlled inputs need the native value setter plus input and change events, and file inputs take a DataTransfer with a React onDrop fallback.

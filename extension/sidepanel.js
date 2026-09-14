@@ -53,6 +53,15 @@ function sendToTab(tabId, msg) {
   });
 }
 
+// Manifest content scripts only run at page load; a tab opened before an extension reload has none, so inject on demand.
+async function ensureContentScript(tabId) {
+  const ping = await sendToTab(tabId, { type: "ping" });
+  if (ping && ping.ok) return null;
+  const files = chrome.runtime.getManifest().content_scripts[0].js;
+  try { await chrome.scripting.executeScript({ target: { tabId }, files }); return null; }
+  catch (e) { return e.message; }
+}
+
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -126,6 +135,8 @@ async function onCvFile(e) {
 async function onReadPosting() {
   clearStatus();
   const tab = await getActiveTab();
+  const injectError = await ensureContentScript(tab.id);
+  if (injectError) { showStatus("Could not reach this page: " + injectError); return; }
   const resp = await sendToTab(tab.id, { type: "scrape" });
   if (!resp || !resp.ok) { showStatus("Could not read this page: " + detailOf(resp)); return; }
   const p = resp.posting || {};
@@ -214,6 +225,8 @@ async function onFill() {
   }
   const data = { profile: collectProfile(), cover_letter: $("letter-text").value, files };
   const tab = await getActiveTab();
+  const injectError = await ensureContentScript(tab.id);
+  if (injectError) { showStatus("Could not reach this page: " + injectError); return; }
   const resp = await sendToTab(tab.id, { type: "fill", data });
   if (!resp || !resp.ok) { showStatus("Fill failed: " + detailOf(resp)); return; }
   renderFillResults(resp.filled, resp.skipped);

@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Tailors your CV and cover letter for a Workday posting with your own AI key, fills the form, and stops before Submit.",
   "permissions": ["sidePanel", "activeTab", "scripting", "storage", "tabs"],
-  "host_permissions": ["http://127.0.0.1:8765/*"],
+  "host_permissions": ["http://127.0.0.1:8765/*", "https://*.myworkdayjobs.com/*", "https://*.myworkdaysite.com/*"],
   "background": {"service_worker": "background.js"},
   "side_panel": {"default_path": "sidepanel.html"},
   "action": {"default_title": "jobie-agent"},

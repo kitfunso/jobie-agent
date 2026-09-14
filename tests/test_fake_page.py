@@ -48,8 +48,8 @@ def load_step(page, step: str | None = None) -> None:
     page.goto(url)
     for name in ["fill.js", "workday-selectors.js", "workday.js", "generic.js"]:
         page.add_script_tag(content=(CONTENT_DIR / name).read_text(encoding="utf-8"))
-    # main.js reads chrome.runtime; the fake page has no extension host, so stub the API it touches.
-    page.evaluate("window.chrome = {runtime: {onMessage: {addListener: function () {}}}}")
+    # main.js reads chrome.runtime; the fake page has no extension host, so stub the API and keep the listener.
+    page.evaluate("window.chrome = {runtime: {onMessage: {addListener: fn => { window.__listener = fn; }}}}")
     page.add_script_tag(content=(CONTENT_DIR / "main.js").read_text(encoding="utf-8"))
 
 
@@ -61,6 +61,15 @@ def test_scrape_posting(page):
     assert posting["company"] == "Sample Co"
     assert "freight and pricing" in posting["description"]
     assert posting["location"] == "London, United Kingdom"
+
+
+def test_message_listener_answers_ping_and_scrape(page):
+    load_step(page)
+    ping = page.evaluate("new Promise(r => window.__listener({type: 'ping'}, {}, r))")
+    assert ping == {"ok": True}
+    scraped = page.evaluate("new Promise(r => window.__listener({type: 'scrape'}, {}, r))")
+    assert scraped["ok"] is True
+    assert scraped["posting"]["title"] == "Senior Data Engineer"
 
 
 def test_posting_url_pattern_accepts_details_and_job(page):

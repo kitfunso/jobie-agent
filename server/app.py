@@ -44,6 +44,8 @@ async def cv_parse(file: UploadFile) -> dict:
 
 @app.post("/tailor", response_model=TailorResponse)
 def tailor_endpoint(req: TailorRequest) -> TailorResponse:
+    if not (req.cv_text or "").strip():
+        raise HTTPException(400, "No CV text. Upload your CV first, then tailor.")
     try:
         model = build_model(ProviderConfig(**req.provider.model_dump()))
     except ValueError as exc:

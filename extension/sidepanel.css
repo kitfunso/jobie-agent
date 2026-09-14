@@ -50,7 +50,7 @@ a{color:var(--accent)}
 #hero.is-scrolled .tagline{opacity:0;height:0;margin:0;overflow:hidden}
 
 /* status banner */
-.status{margin:var(--sp-4);padding:var(--sp-3) var(--sp-4);background:var(--warning-tint);color:var(--warning);border-left:2px solid var(--warning);border-radius:var(--r-plate);font-size:var(--fs-2)}
+.status{flex-shrink:0;margin:var(--sp-4);padding:var(--sp-3) var(--sp-4);background:var(--warning-tint);color:var(--warning);border-left:2px solid var(--warning);border-radius:var(--r-plate);font-size:var(--fs-2)}
 .status[hidden]{display:none}
 
 /* stages */
@@ -85,6 +85,7 @@ input[type="file"]{border:1px dashed var(--hairline);border-radius:var(--r-input
 .btn:hover{transform:translateY(-1px)}
 .btn:active{transform:translateY(0)}
 .btn-primary{background:var(--accent);color:var(--bg);border-color:var(--accent);font-weight:600;min-height:32px}
+.btn:disabled{opacity:.6;cursor:progress;transform:none}
 .btn-secondary{background:transparent;color:var(--accent);border-color:var(--hairline)}
 .btn-text{background:none;border:none;color:var(--muted);padding:0;text-decoration:underline;min-height:auto;border-radius:0}
 .btn-text--danger{color:var(--error)}

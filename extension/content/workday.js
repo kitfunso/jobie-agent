@@ -170,8 +170,8 @@ const Workday = (() => {
   function pageInfo() {
     const h2 = document.querySelector("h2");
     const button = _nextButton();
-    return { step: _step(), url: location.href, heading: h2 ? h2.textContent.trim() : "", errors: _errors(),
-             nextButton: button ? button.textContent.trim() : "" };
+    return { step: _step(), posting: isPosting(), url: location.href, heading: h2 ? h2.textContent.trim() : "",
+             errors: _errors(), nextButton: button ? button.textContent.trim() : "" };
   }
 
   // The Review page's footer button is Submit under the same automation id; the text check is what keeps it unclicked.

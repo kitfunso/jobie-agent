@@ -41,6 +41,16 @@ def test_tailor_bad_provider_is_400():
     assert client.post("/tailor", json=body).status_code == 400
 
 
+def test_tailor_empty_cv_is_400_before_any_model_call(monkeypatch):
+    monkeypatch.setattr(app_module, "build_model", lambda cfg: pytest.fail("build_model must not run"))
+    client = TestClient(app_module.app)
+    body = {"posting": {"title": "Analyst", "company": "Acme", "location": "", "description": "Python", "url": ""},
+            "cv_text": "   ", "provider": {"name": "bedrock", "api_key": "", "model_id": "", "region": ""}}
+    r = client.post("/tailor", json=body)
+    assert r.status_code == 400
+    assert "Upload your CV" in r.json()["detail"]
+
+
 def test_files_rejects_traversal():
     client = TestClient(app_module.app)
     assert client.get("/files/..%2F.env").status_code in (400, 404)

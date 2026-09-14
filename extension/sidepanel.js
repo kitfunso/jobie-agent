@@ -194,33 +194,59 @@ function renderList(id, items) {
   });
 }
 
+const TAILOR_LABEL = "Tailor CV and write letter";
+
+// The previous run's output stays on screen otherwise, which reads as "the button did nothing".
+async function clearTailorOutput() {
+  renderRounds([]);
+  $("cv-markdown").value = "";
+  renderList("changes-list", []);
+  renderList("gaps-list", []);
+  applyTailored({});
+  await chrome.storage.session.remove("tailored");
+}
+
 async function onTailor() {
   clearStatus();
-  setShaderSpeed(0.8);
   const store = await chrome.storage.local.get(["settings", "cv_text"]);
+  if (!store.cv_text) {
+    showStatus("No CV loaded. Upload your CV under 1 Set up once, then click Tailor again.");
+    await openSetup();
+    return false;
+  }
   const settings = store.settings || {};
   const body = {
     posting: {
       title: $("posting-title").value, company: $("posting-company").value,
       location: $("posting-location").value, description: $("posting-description").value, url: lastPostingUrl
     },
-    cv_text: store.cv_text || "",
+    cv_text: store.cv_text,
     provider: { name: settings.name || "bedrock", api_key: settings.api_key || "", model_id: settings.model_id || "", region: settings.region || "" }
   };
-  const resp = await sendToBg({ type: "api", method: "POST", path: "/tailor", body });
-  if (!resp.ok) { showStatus("Tailor failed: " + detailOf(resp)); setShaderSpeed(0.25); return false; }
-  const data = resp.data;
-  renderRounds(data.rounds);
-  $("cv-markdown").value = data.cv_markdown || "";
-  renderList("changes-list", data.changes);
-  renderList("gaps-list", data.gaps);
-  const tailored = { cv_pdf: data.cv_pdf || "", letter_pdf: data.letter_pdf || "", cover_letter: data.cover_letter || "", posting_url: lastPostingUrl };
-  applyTailored(tailored);
-  $("output-details").open = true;
-  // session storage so the result survives the panel closing while the user signs in and clicks Apply
-  await chrome.storage.session.set({ tailored });
-  setShaderSpeed(0.25);
-  return true;
+  const btn = $("tailor-btn");
+  btn.disabled = true;
+  btn.textContent = "Tailoring, 30 to 90 seconds";
+  await clearTailorOutput();
+  setShaderSpeed(0.8);
+  try {
+    const resp = await sendToBg({ type: "api", method: "POST", path: "/tailor", body });
+    if (!resp.ok) { showStatus("Tailor failed: " + detailOf(resp)); return false; }
+    const data = resp.data;
+    renderRounds(data.rounds);
+    $("cv-markdown").value = data.cv_markdown || "";
+    renderList("changes-list", data.changes);
+    renderList("gaps-list", data.gaps);
+    const tailored = { cv_pdf: data.cv_pdf || "", letter_pdf: data.letter_pdf || "", cover_letter: data.cover_letter || "", posting_url: lastPostingUrl };
+    applyTailored(tailored);
+    $("output-details").open = true;
+    // session storage so the result survives the panel closing while the user signs in and clicks Apply
+    await chrome.storage.session.set({ tailored });
+    return true;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = TAILOR_LABEL;
+    setShaderSpeed(0.25);
+  }
 }
 
 function applyTailored(t) {
@@ -317,6 +343,7 @@ async function onRunToReview() {
     if (runStopped) { showStatus("Stopped."); setShaderSpeed(0.25); return; }
     const info = await pageInfo(tab.id);
     if (!info) { showStatus("Could not reach this page."); setShaderSpeed(0.25); return; }
+    if (info.posting) { showStatus("This is the posting page. Click Apply on the page, sign in, then click Run to review on the first form page."); setShaderSpeed(0.25); return; }
     if (info.step === "review") { logRun("Review page reached."); showStatus("Review page. Read it through and press Submit yourself."); setShaderSpeed(0); return; }
     if (info.step === "unknown" && page > 1) { showStatus("Stopped at a page I do not recognise. Fill it by hand, then click Run to review again."); setShaderSpeed(0.25); return; }
     if (info.step !== "unknown") {

@@ -22,7 +22,7 @@ Say: "The side panel reads the posting. Nothing leaves the machine yet."
 
 Action: click **Tailor CV and write letter**. While it runs, alt-tab to the terminal so the request log shows.
 
-Show: the check rows appear. Open an **Agent self-check** row with findings and read two aloud. Open the **Loop check** row and show zero findings.
+Show: the finish line appears, "Finished. 1 self-check, final pass clean." Alt-tab to the terminal, where the server logs one line per check with the rule names, and read two of the rules the model caught on itself.
 
 Say: "The agent writes the CV and the letter from the facts in my CV. Its one tool is a deterministic checker that scans a draft for named AI writing patterns. Here the model ran it on its own draft and it caught a banned word and an em dash. It fixed them and checked again before it answered. Then the same checker ran outside the agent and found nothing. No guessing, no score, just named rules and a zero."
 
@@ -50,7 +50,7 @@ Say: "The Submit button sits under the same Workday id as Save and Continue. The
 
 Screen: `docs/architecture.png`, then `agent/writer.py` in the editor.
 
-Say: "The agent is a Strands Agent with one tool. slop_check is a Strands tool the model calls on its own draft before it answers. Every call returns structured output through a Pydantic model. The same checker runs again outside the agent, and if anything is left it sends a rewrite prompt, up to three rounds. Bring your own key: Bedrock, Anthropic or OpenAI, picked in the panel and built into the Strands model per request. The server is FastAPI on localhost. The extension is plain Manifest V3, no build step."
+Say: "The agent is a Strands Agent with one tool. slop_check is a Strands tool the model calls on its own draft before it answers. Every call returns structured output through a Pydantic model. The same checker runs again outside the agent, and if anything is left it sends a rewrite prompt, up to two rounds. Bring your own key: Bedrock, Anthropic or OpenAI, picked in the panel and built into the Strands model per request. The server is FastAPI on localhost. The extension is plain Manifest V3, no build step."
 
 Screen: README with the real run transcript.
 

@@ -60,6 +60,8 @@ def tailor_endpoint(req: TailorRequest) -> TailorResponse:
     cv_name, letter_name = f"{job_id}-cv.pdf", f"{job_id}-letter.pdf"
     render_markdown_pdf(outcome.result.cv_markdown, OUT_DIR / cv_name)
     render_markdown_pdf(outcome.result.cover_letter, OUT_DIR / letter_name)
+    for r in outcome.rounds:
+        log.info("round %d %s: %d findings %s", r.round, r.source, len(r.findings), [f.rule for f in r.findings])
     log.info("tailored %s at %s: rounds=%d final_findings=%d", p.title, p.company, len(outcome.rounds), len(outcome.rounds[-1].findings))
     return TailorResponse(
         **outcome.result.model_dump(),

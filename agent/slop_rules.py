@@ -49,8 +49,45 @@ CLICHES = _any(
     r"best practices", r"your (?:organi[sz]ation|esteemed)", r"dear hiring manager", r"exciting opportunity",
     r"the successful candidate", r"track record", r"state-of-the-art", r"world-class",
     r"deliver(?:ing|s|ed)? value", r"drive (?:growth|results|impact|innovation)", r"impactful",
-    r"i am particularly", r"what excites me",
+    r"i am particularly", r"what excites me", r"welcome a (?:conversation|chat|call|discussion)",
+    r"would (?:love|be glad|be happy) to (?:discuss|talk|chat|hear|speak)", r"happy to (?:discuss|talk further|chat)",
+    r"open to a conversation", r"hope to hear", r"i'?d love to",
 )
+
+# The bridge: a fact, then a clause telling the reader why it matters to them. Every model does it unprompted.
+BRIDGE = _any(
+    r"which (?:gives|gave|means|meant|puts|put|makes|made|lets|let|taught) me",
+    r"that (?:experience|background|work|combination|foundation) (?:is|sits|gives|gave|means|taught|puts)",
+    r"sits? (?:at|in) the (?:same )?intersection", r"that'?s (?:exactly|precisely) (?:where|what|the)",
+    r"is (?:exactly|precisely) (?:where|what|the kind)", r"the direction i want", r"where i want to (?:take|go)",
+    r"translates? (?:directly )?(?:to|into)", r"the kind of (?:work|problem|role|environment|place) i",
+    r"speaks? directly to", r"maps? (?:directly |neatly )?(?:on)?to", r"(?:most )?direct match for",
+    r"(?:a |the )?(?:natural|close|good|strong|obvious) (?:match|fit) for",
+)
+
+FLATTERY = _any(
+    r"(?:harder|bigger|tougher|larger|more \w+)(?: \w+){0,4} than most", r"few (?:teams|desks|companies|firms|places|shops)",
+    r"the best (?:team|desk|place|firm|company)", r"industry[- ]leading", r"a leader in",
+    r"leading (?:firm|company|player|desk)", r"the (?:most )?(?:interesting|exciting|hardest) (?:problems?|work|desk) in",
+)
+
+SALES_TALK = _any(
+    r"in my (?:daily |everyday )?toolkit", r"rigorously", r"to (?:a )?production standard", r"battle[- ]tested",
+    r"production[- ](?:grade|ready|quality)", r"end[- ]to[- ]end", r"deep (?:experience|expertise|understanding)",
+    r"hands[- ]on", r"first[- ]hand", r"real[- ]world",
+)
+
+# Tone example embedded in the brief; a different person and field so its facts cannot be lifted, and the
+# echo check refuses its phrases.
+EXAMPLE_LETTER = """Dear Ms Okafor,
+
+The rota at Hillside was the job nobody wanted, so I took it. Forty staff, and the old spreadsheet kept putting the same people on nights. I rebuilt it as a short Python script that reads holiday requests from the shared calendar. Sick days fell 19% in the first quarter. The managers still argue with it, and I take that as a sign it's being used.
+
+Before Hillside I ran the front desk at a hostel in Leeds for two years. Most of that was saying no politely, in four languages.
+
+I haven't used SAP, and the posting leans on it. Rostering across the Bristol depots is what I'd ask about first if we talk.
+
+Dana Reyes"""
 
 # Spoken contractions only; possessive 's is left out so "EDF's desk" does not count.
 CONTRACTIONS = re.compile(
@@ -72,6 +109,9 @@ RULES: tuple[Rule, ...] = (
     Rule("banned word", BANNED_WORDS, "replace with the plain word or the concrete fact"),
     Rule("cover letter cliche", CLICHES, "state the specific result or role fact instead", LETTER),
     Rule("empty phrase", EMPTY_PHRASES, "cut the phrase, keep the point"),
+    Rule("bridge clause", BRIDGE, "state the fact and stop; let the reader connect it", LETTER),
+    Rule("flattery", FLATTERY, "cut it; the reader works there", LETTER),
+    Rule("sales talk", SALES_TALK, "say what you did instead", LETTER),
     Rule("binary contrast", re.compile(
         r"\bnot (?:just|only|merely)\b[^.\n]{1,80}\bbut\b|\b(?:isn'?t|is not|wasn'?t) (?:just |only )?[^.\n]{1,60}[.;]\s*(?:it'?s|it is)\b",
         re.IGNORECASE), "state the second half directly", LETTER),
@@ -110,3 +150,16 @@ SUMMARY_OPENERS = re.compile(r"^\s*(?:in conclusion|ultimately|overall|in summar
 EM_DASH = re.compile(r"—|–| -- ")
 SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+")
 MAX_LETTER_WORDS = 350
+# A range ("78-84%", "+4.7 to +5.3") is one number; years are not numbers; "H1" is not a number.
+NUMBER = re.compile(r"(?<![A-Za-z\d])[+-]?\d+(?:[.,]\d+)*(?:\s*(?:-|–|to|and)\s*[+-]?\d+(?:[.,]\d+)*)?")
+YEAR = re.compile(r"\b(?:19|20)\d{2}\b")
+MAX_NUMBERS_PER_SENTENCE = 2
+MAX_NUMBERS_PER_LETTER = 6
+DIGITS = re.compile(r"\d+")
+# "one" is left out: in a letter it is a pronoun far more often than a count.
+_NUMBER_WORDS = ("two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve",
+                 "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty")
+NUMBER_WORDS = {w: str(i) for i, w in enumerate(_NUMBER_WORDS, start=2)}
+NUMBER_WORDS.update({"thirty": "30", "forty": "40", "fifty": "50", "sixty": "60", "seventy": "70", "eighty": "80",
+                     "ninety": "90", "dozen": "12"})
+CURRENCY = re.compile(r"[£$€]")

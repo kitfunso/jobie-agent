@@ -34,6 +34,13 @@ def test_loop_gives_up_after_max_rounds():
     assert outcome.rounds[-1].findings
 
 
+def test_default_is_two_rounds():
+    def generate(prompt: str) -> Generation:
+        return _gen(DIRTY)
+
+    assert len(run_loop(generate, "p").rounds) == 2
+
+
 def test_agent_self_checks_are_listed_before_the_loop_check():
     seen = (Finding("banned word", "I leverage tools.", "say use"),)
 
@@ -55,3 +62,12 @@ def test_self_checks_reads_only_slop_check_tool_results():
     checks = self_checks(messages)
     assert len(checks) == 1
     assert checks[0] == (Finding("banned word", "I leverage tools.", "say use"),)
+
+
+def test_loop_checks_letter_numbers_against_the_cv():
+    def generate(prompt: str) -> Generation:
+        return _gen("At Unipec I run Python daily against a 20 TB lake across five desks.")
+
+    rules = lambda outcome: {f.rule for f in outcome.rounds[0].findings}
+    assert "unsourced number" in rules(run_loop(generate, "p", cv="Python daily against a 20 TB lake."))
+    assert "unsourced number" not in rules(run_loop(generate, "p"))

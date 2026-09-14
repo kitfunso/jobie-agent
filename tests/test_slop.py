@@ -97,3 +97,55 @@ def test_template_letter_phrases_are_cliches():
     text = ("Dear Hiring Manager, I am confident that my extensive experience aligns with your needs. "
             "I look forward to hearing from you. Thank you for considering my application.")
     assert len([f for f in check(text, "letter") if f.rule == "cover letter cliche"]) >= 4
+
+
+def test_bridge_clause_is_named():
+    text = ("That work sits at the same intersection your quant team operates in. I hedged a book, "
+            "which gives me the desk context that matters. It's the direction I want to go.")
+    assert len([f for f in check(text, "letter") if f.rule == "bridge clause"]) == 3
+
+
+def test_number_pile_counts_ranges_as_one_and_ignores_years():
+    pile = ("My spread model ran an IC of 0.44 over seven years, the engine covered 39 routes with hit "
+            "rates of 78-84% and edge of +4.7 to +5.3 $/bbl.")
+    assert any(f.rule == "number pile" for f in check(pile, "letter"))
+    fine = ("It now covers 39 routes, with hit rates between 78 and 84% on the calls it has made. "
+            "In the first half of 2024 that book made 600k against 150k of VaR.")
+    assert not any(f.rule in ("number pile", "stat sheet") for f in check(fine, "letter"))
+
+
+def test_stat_sheet_flags_more_than_six_numbers():
+    text = " ".join(f"Job {i} cut costs by {i}0%." for i in range(1, 8))
+    assert any(f.rule == "stat sheet" for f in check(text, "letter"))
+    assert not any(f.rule == "number pile" for f in check(text, "letter"))
+
+
+def test_close_cliches_and_flattery():
+    text = "That's a harder problem than most desks face. I'd welcome a conversation about the role."
+    names = {f.rule for f in check(text, "letter")}
+    assert {"flattery", "cover letter cliche"} <= names
+
+
+def test_sales_talk_is_letter_only():
+    text = "Monte Carlo is in my daily toolkit and I test rigorously."
+    assert any(f.rule == "sales talk" for f in check(text, "letter"))
+    assert not any(f.rule == "sales talk" for f in check(text, "cv"))
+
+
+def test_example_letter_passes_its_own_rules_and_cannot_be_lifted():
+    from agent.slop_rules import EXAMPLE_LETTER
+    assert {f.rule for f in check(EXAMPLE_LETTER, "letter")} <= {"example echo"}
+    lifted = "Dear Sir,\n\nThe rota at Hillside was the job nobody wanted, so I took it.\n\nMe"
+    assert any(f.rule == "example echo" for f in check(lifted, "letter"))
+    assert not any(f.rule == "example echo" for f in check(CLEAN_LETTER, "letter"))
+
+
+def test_unsourced_number_needs_the_cv():
+    cv = "Built the engine across 36 routes over seven years with four traders. 1,200 tickets, +600k."
+    letter = "I built the engine across 36 routes over seven years. It fits smiles across five tenors."
+    unsourced = lambda text, **kw: [f.quote for f in check(text, "letter", **kw) if f.rule == "unsourced number"]
+    assert unsourced(letter, cv=cv) == ["It fits smiles across five tenors."]
+    assert unsourced(letter) == []
+    assert unsourced("Four traders use it. It handled 1200 tickets, up 600k. Since 2019.", cv=cv) == []
+    assert unsourced("Your 12 desks would use it.", cv=cv, posting="across our 12 desks") == []
+    assert unsourced("Up £600k.", cv=cv) == ["Up £600k."]

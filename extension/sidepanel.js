@@ -164,24 +164,22 @@ async function onReadPosting() {
   updatePostingSummary();
 }
 
+// One line when the agent is done. The per-check rows were noise to the applicant; the server still returns every round.
 function renderRounds(rounds) {
   const container = $("rounds");
   container.textContent = "";
-  (rounds || []).forEach(r => {
-    const details = document.createElement("details");
-    details.className = "round";
-    const summary = document.createElement("summary");
-    const label = r.source === "agent" ? "Agent self-check" : "Loop check";
-    summary.textContent = label + ", round " + r.round + ": " + r.findings.length + " findings";
-    details.appendChild(summary);
-    r.findings.forEach(f => {
-      const div = document.createElement("div");
-      div.className = "finding";
-      div.textContent = f.rule + ': "' + f.quote + '"';
-      details.appendChild(div);
-    });
-    container.appendChild(details);
-  });
+  if (!rounds || !rounds.length) return;
+  const selfChecks = rounds.filter(r => r.source === "agent").length;
+  const loops = rounds.filter(r => r.source === "loop");
+  const left = loops.length ? loops[loops.length - 1].findings.length : 0;
+  const checks = selfChecks + (selfChecks === 1 ? " self-check" : " self-checks");
+  const line = document.createElement("div");
+  line.className = "round";
+  line.dataset.result = left ? "caught" : "clean";
+  line.textContent = left
+    ? "Finished with " + left + " findings left after " + loops.length + " rounds. Read the letter with care."
+    : "Finished. " + checks + ", final pass clean.";
+  container.appendChild(line);
 }
 
 function renderList(id, items) {

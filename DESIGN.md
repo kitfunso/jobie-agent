@@ -10,7 +10,7 @@
 - **Direction:** typed dossier with a paper-shader header. A job application is paperwork; the panel reads like a well-set form, and the one generated surface is the header band, where a Paper Shaders field (mesh gradient, neuro noise, dot orbit, dithering or grain) breathes slowly and quickens while the agent runs.
 - **Decoration level:** minimal below the header. Hairlines and type carry the hierarchy; no cards, no icons in circles, no gradients outside the shader.
 - **Mood:** calm, exact, clearly not part of Workday.
-- **Memorable thing:** it reads like a receipt of what the agent did and what it refused to do: every check the model ran is a row you can open, and the button it will never press is named on screen.
+- **Memorable thing:** it reads like a receipt of what the agent did and what it refused to do: the checks the model ran on itself are counted on the finish line and logged one per line by the server, and the button it will never press is named on screen.
 
 ## Typography
 - **Display/Hero:** Instrument Sans - one humanist grotesque at 600 for headings and the header wordmark, so the panel has one voice.

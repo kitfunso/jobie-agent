@@ -57,16 +57,16 @@ The rule families in `agent/slop_rules.py`:
 | hedging stack | "may potentially", "could possibly" |
 | emoji | any |
 
-On top of the regex rules, `agent/slop.py` checks the shape of the text: em dashes (one is enough to fail a letter), letters over 350 words, a closing paragraph that summarises, most sentences opening with "I", sentence lengths so even they read as machine output, a full-length letter with no contractions at all, and any run of eight words copied from the posting (the ad talking instead of the applicant).
+On top of the regex rules, `agent/slop.py` checks the shape of the text: em dashes (one is enough to fail a letter), letters over 350 words, a closing paragraph that summarises, most sentences opening with "I", sentence lengths so even they read as machine output, a full-length letter with no contractions at all, more than two numbers in one sentence or more than six in the letter, a number or currency sign that appears in neither the CV nor the posting, and any run of eight words copied from the posting (the ad talking instead of the applicant) or from the example letter in the brief.
 
 The checker runs in two layers:
 
-1. **Inside the agent.** `slop_check` is a Strands `@tool`. The system prompt tells the model to call it on the letter and on the CV before it answers, and to fix and re-check until both return zero findings.
-2. **Outside the agent.** `agent/writer.py` runs the same `check()` on the structured output the model returned. If anything remains, it sends the findings back as a rewrite prompt. Up to three rounds.
+1. **Inside the agent.** `slop_check` is a Strands `@tool`. The system prompt tells the model to call it on the letter before it answers, and to fix and re-check until it returns zero findings. The CV is checked once, outside.
+2. **Outside the agent.** `agent/writer.py` runs the same `check()` on the letter and the CV the model returned. If anything remains, it sends the findings back as a rewrite prompt. Up to two rounds. This pass also has the CV text, so it is the one that catches a number the letter made up.
 
-The panel shows both layers. Each `slop_check` call the model made mid-turn appears as an "Agent self-check" row, read back from the Strands message history, and the outside pass appears as a "Loop check" row, so you can watch the draft getting cleaner.
+The server returns both layers as rounds, each `slop_check` call the model made mid-turn read back from the Strands message history plus the outside pass. The panel folds them into one line when the agent is done: how many self-checks it ran and whether the final pass was clean.
 
-The model also gets a plain brief: facts from the CV only, list what the posting asks for that the CV does not show as a gap, 150 to 250 words for the letter, written as the applicant talking to one person with contractions where they would say them, open with the most relevant thing they did and a number, pick the two or three requirements that matter instead of walking the posting's list, one honest sentence on why this job, and a one-line close with no thank-you paragraph.
+The model also gets a plain brief: facts from the CV only, list what the posting asks for that the CV does not show as a gap, 120 to 220 words for the letter, written as the applicant talking to one person with contractions where they would say them. One story told the way they would tell it in an interview, the earlier work in two or three sentences, then a close that admits the biggest gap and names the part of the role they would ask about first. One number per sentence, no clause telling the reader why a fact matters, no praise for the company, and a short example letter for tone that the echo check refuses to let it copy.
 
 ### A real run
 

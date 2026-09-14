@@ -1,7 +1,7 @@
 // extension/sidepanel.js
 const SERVER = "http://127.0.0.1:8765";
 const MODEL_DEFAULTS = {
-  bedrock: "global.anthropic.claude-sonnet-4-6",
+  bedrock: "global.anthropic.claude-sonnet-5",
   anthropic: "claude-sonnet-5",
   openai: "gpt-4o"
 };

@@ -84,13 +84,13 @@ round 1 loop: 0 findings []
 
 The model called `slop_check` five times inside one turn, three of them with findings, and kept rewriting until the letter and the CV both came back clean. The outside check then found nothing, so the loop ended after one round. The letter opened on a shipped system and a number, stayed in the first person, and listed 11 posting requirements as gaps instead of claiming them.
 
-The same run on Claude Haiku 4.5 also came back clean after six self-checks. Claude Sonnet 5 returned `AccessDeniedException` on a fresh Bedrock account, so the default stays on Sonnet 4.6 until your account has access.
+The same run on Claude Haiku 4.5 also came back clean after six self-checks. The Bedrock default is Claude Sonnet 5 through the `global.anthropic.claude-sonnet-5` inference profile, which writes the better letter. Bedrock subscribes your account to a model on its first call, and until that finishes the call returns `AccessDeniedException`. Retry after a few minutes, or put `global.anthropic.claude-sonnet-4-6` in the Model id box in the meantime.
 
 ## Bring your own key
 
 | Provider | Panel value | Env var fallback | Default model | Strands class |
 |---|---|---|---|---|
-| Amazon Bedrock | `bedrock` | `AWS_BEARER_TOKEN_BEDROCK`, or the usual boto3 credential chain | `global.anthropic.claude-sonnet-4-6` | `BedrockModel` |
+| Amazon Bedrock | `bedrock` | `AWS_BEARER_TOKEN_BEDROCK`, or the usual boto3 credential chain | `global.anthropic.claude-sonnet-5` | `BedrockModel` |
 | Anthropic | `anthropic` | `ANTHROPIC_API_KEY` | `claude-sonnet-5` | `AnthropicModel` |
 | OpenAI | `openai` | `OPENAI_API_KEY` | `gpt-4o` | `OpenAIModel` |
 

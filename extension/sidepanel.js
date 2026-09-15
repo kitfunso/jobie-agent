@@ -12,6 +12,7 @@ let lastPostingUrl = "";
 let lastTailoredUrl = "";
 let runStopped = false;
 const MAX_PAGES = 8;
+const FORM_SETTLE_TIMEOUT_MS = 8000;
 const PAGE_CHANGE_TIMEOUT_MS = 20000;
 
 function $(id) { return document.getElementById(id); }
@@ -47,9 +48,13 @@ function sendToBg(msg) {
   });
 }
 
+// Opened as its own window or a plain tab, the panel still targets the Workday tab.
 async function getActiveTab() {
-  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-  return tabs[0];
+  const [active] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const url = (active && active.url) || "";
+  if (url.includes(".myworkdayjobs.com/") || url.includes(".myworkdaysite.com/")) return active;
+  const [workday] = await chrome.tabs.query({ url: ["https://*.myworkdayjobs.com/*", "https://*.myworkdaysite.com/*"] });
+  return workday || active;
 }
 
 function sendToTab(tabId, msg) {
@@ -370,6 +375,19 @@ async function pageInfo(tabId) {
 
 function pageSignature(info) { return [info.step, info.heading, info.url].join("|"); }
 
+// Workday paints a new step's fields a beat after the step changes: fill only once the field count stops moving.
+async function waitForFormSettle(tabId) {
+  let last = -1;
+  const end = Date.now() + FORM_SETTLE_TIMEOUT_MS;
+  while (Date.now() < end && !runStopped) {
+    await new Promise(r => setTimeout(r, 700));
+    const info = await pageInfo(tabId);
+    const count = info ? info.fieldCount || 0 : -1;
+    if (count > 0 && count === last) return;
+    last = count;
+  }
+}
+
 // Workday advances in place or with a full reload; either way the content script is re-reached through pageInfo.
 async function waitForPageChange(tabId, before) {
   const end = Date.now() + PAGE_CHANGE_TIMEOUT_MS;
@@ -439,6 +457,7 @@ async function runToReview() {
     if (runStopped) { showStatus("Stopped."); setShaderSpeed(0.25); return; }
     if (next.info.errors.length) { showStatus("Workday flagged: " + next.info.errors.join("; ") + ". Fix this by hand, then click Run to review again."); setShaderSpeed(0.25); return; }
     if (!next.changed) { showStatus("Stopped: the page did not move on after Save and Continue."); setShaderSpeed(0.25); return; }
+    await waitForFormSettle(tab.id);
   }
   showStatus("Stopped after " + MAX_PAGES + " pages without reaching Review.");
   setShaderSpeed(0.25);

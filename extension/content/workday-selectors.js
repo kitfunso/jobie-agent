@@ -19,7 +19,8 @@ const WD = {
     reviewHeading: "h2",
     // verified: pageFooterNextButton reads "Save and Continue" and keeps its id on every step, so on Review it is Submit
     nextButton: 'button[data-automation-id="bottom-navigation-next-button"], button[data-automation-id="pageFooterNextButton"]',
-    errorMessage: '[data-automation-id="errorMessage"], [data-automation-id="alertMessage"], [role="alert"]',
+    // verified on edftrading.wd1: role=alert also carries "successfully uploaded" notices, so errors come from Workday's own error ids
+    errorMessage: '[data-automation-id="errorMessage"], [data-automation-id="alertMessage"], [data-automation-id="errorHeading"]',
     // verified: search page with a details panel uses /details/, standalone postings use /job/; apply pages keep /job/ too
     postingUrlPattern: /\/(job|details)\//,
   },

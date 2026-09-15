@@ -102,6 +102,7 @@ const Workday = (() => {
   }
 
   function _answered(wrapper) {
+    if (wrapper.querySelector('input[type="file"]')) return !!wrapper.querySelector(WD.fields.fileUploadSuccess);
     if (wrapper.querySelector(WD.widgets.selectedItem)) return true;
     const radios = Array.from(wrapper.querySelectorAll('input[type="radio"]'));
     if (radios.length) return radios.some(r => r.checked);
@@ -156,6 +157,7 @@ const Workday = (() => {
   }
 
   async function _describe(wrapper) {
+    if (wrapper.querySelector('input[type="file"]')) return null;
     const id = wrapper.getAttribute("data-automation-id").slice(FIELD_PREFIX.length);
     const base = { id, label: _label(wrapper), required: !!wrapper.querySelector(WD.widgets.required) };
     const radios = Array.from(wrapper.querySelectorAll('input[type="radio"]'));
@@ -323,7 +325,8 @@ const Workday = (() => {
     const input = document.querySelector(WD.fields.fileUploadInput);
     if (!input) return { ok: false, path: "no file input found" };
     Fill.setFiles(input, files);
-    const success = await Fill.waitFor(WD.fields.fileUploadSuccess, 2000);
+    // verified on edftrading.wd1: the success badge lands several seconds after the input change
+    const success = await Fill.waitFor(WD.fields.fileUploadSuccess, 8000);
     if (success) return { ok: true, path: "native input" };
     return _dropZoneFallback(files);
   }
@@ -332,7 +335,9 @@ const Workday = (() => {
     const filled = [];
     const skipped = [];
     const files = (data.files || []).map(f => Fill.b64ToFile(f.b64, f.name));
-    if (files.length) {
+    if (document.querySelector(WD.fields.fileUploadSuccess)) {
+      skipped.push("resume upload: already attached");
+    } else if (files.length) {
       const result = await _uploadFiles(files);
       (result.ok ? filled : skipped).push(`resume upload (${result.path})`);
     } else {
@@ -372,6 +377,7 @@ const Workday = (() => {
     const button = _nextButton();
     return { step: _step(), stepName: _progressStepName(), posting: isPosting(), url: location.href,
              heading: h2 ? h2.textContent.trim() : "", errors: _errors(), unanswered: unansweredRequired(),
+             fieldCount: document.querySelectorAll(WD.widgets.formField).length,
              nextButton: button ? button.textContent.trim() : "" };
   }
 

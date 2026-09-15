@@ -13,6 +13,14 @@ def test_openai_model_id_override():
     assert model.get_config()["model_id"] == "gpt-4o-mini"
 
 
+def test_nebius_is_openai_compatible_at_token_factory(monkeypatch):
+    monkeypatch.setenv("NEBIUS_API_KEY", "nb-test")
+    model = build_model(ProviderConfig(name="nebius"))
+    assert type(model).__name__ == "OpenAIModel"
+    assert model.get_config()["model_id"] == "nvidia/nemotron-3-super-120b-a12b"
+    assert model.client_args["base_url"] == "https://api.tokenfactory.nebius.com/v1/"
+
+
 def test_bedrock_reads_env_when_key_empty(monkeypatch):
     monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "bearer-test")
     monkeypatch.setenv("AWS_REGION", "us-east-1")

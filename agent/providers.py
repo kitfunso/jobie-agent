@@ -10,8 +10,12 @@ DEFAULT_MODEL_IDS = {
     "anthropic": "claude-sonnet-5",
     "openai": "gpt-4o",
     "bedrock": "global.anthropic.claude-sonnet-4-6",
+    "nebius": "nvidia/nemotron-3-super-120b-a12b",
 }
-ENV_KEYS = {"anthropic": "ANTHROPIC_API_KEY", "openai": "OPENAI_API_KEY", "bedrock": "AWS_BEARER_TOKEN_BEDROCK"}
+ENV_KEYS = {"anthropic": "ANTHROPIC_API_KEY", "openai": "OPENAI_API_KEY", "bedrock": "AWS_BEARER_TOKEN_BEDROCK",
+            "nebius": "NEBIUS_API_KEY"}
+# Nebius Token Factory speaks the OpenAI API; Nemotron 3 Super is the NVIDIA model it serves for the hackathon track.
+NEBIUS_BASE_URL = "https://api.tokenfactory.nebius.com/v1/"
 
 
 @dataclass(frozen=True)
@@ -35,6 +39,9 @@ def build_model(cfg: ProviderConfig) -> Model:
     if cfg.name == "openai":
         from strands.models.openai import OpenAIModel
         return OpenAIModel(client_args={"api_key": key}, model_id=model_id)
+    if cfg.name == "nebius":
+        from strands.models.openai import OpenAIModel
+        return OpenAIModel(client_args={"api_key": key, "base_url": NEBIUS_BASE_URL}, model_id=model_id)
     from strands.models import BedrockModel
     region = cfg.region or os.environ.get("AWS_REGION", "us-east-1")
     return BedrockModel(model_id=model_id, region_name=region, api_key=key or None)

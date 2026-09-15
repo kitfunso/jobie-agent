@@ -39,16 +39,23 @@ def test_answer_returns_one_answer_per_field(monkeypatch):
     from agent.answers import Answer
     monkeypatch.setattr(app_module, "build_model", lambda cfg: object())
     monkeypatch.setattr(app_module, "make_answerer", lambda model: None)
-    monkeypatch.setattr(app_module, "answer_fields", lambda answerer, fields, profile, cv, title, company: [
-        Answer(id=f.id, value=None if f.kind == "prompt" else "5", reason="cv") for f in fields])
+    seen = {}
+
+    def fake_answer_fields(answerer, fields, profile, cv, title, company, known=()):
+        seen["known"] = [(k.question, k.answer) for k in known]
+        return [Answer(id=f.id, value=None if f.kind == "prompt" else "5", reason="cv") for f in fields]
+
+    monkeypatch.setattr(app_module, "answer_fields", fake_answer_fields)
     client = TestClient(app_module.app)
     body = {"fields": [{"id": "years", "label": "Years", "kind": "text"},
                        {"id": "source", "label": "Source", "kind": "prompt", "required": True}],
             "profile": {"first_name": "Keith", "notes": ""}, "cv_text": "cv", "posting_title": "Analyst", "company": "Acme",
-            "provider": {"name": "anthropic", "api_key": "sk-test", "model_id": "", "region": ""}}
+            "provider": {"name": "anthropic", "api_key": "sk-test", "model_id": "", "region": ""},
+            "known_answers": [{"question": "Notice period", "answer": "3 months"}]}
     r = client.post("/answer", json=body)
     assert r.status_code == 200, r.text
     assert r.json() == {"answers": [{"id": "years", "value": "5", "reason": "cv"}, {"id": "source", "value": None, "reason": "cv"}]}
+    assert seen["known"] == [("Notice period", "3 months")]
 
 
 def test_tailor_bad_provider_is_400():

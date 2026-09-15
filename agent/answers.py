@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 from pydantic import BaseModel, Field
 from strands import Agent
@@ -16,7 +16,12 @@ fixed list, and the current value. You also get the applicant's profile, their n
 For each field, answer only from the profile, the notes or the CV. If none of them gives the answer, set value to
 null and say in reason, in a few words, what is missing. Never guess: not whether they worked for this employer
 before, not how they heard of the job, not their right to work, not salary, not a notice period, unless the notes
-say so. Leave a field that already holds a value alone: value null, reason "already set".
+say so. Leave a field that already holds a value alone: value null, reason "already set". A field that is not
+required stays null unless the sources state its value: never tick a checkbox or pick an option to be helpful.
+A field named for one thing takes only that thing: a GitHub or portfolio link is not a LinkedIn URL.
+
+You may also get answers the applicant gave on earlier applications. When a field asks the same thing in other words,
+reuse that answer and pick the option that matches it. When the question differs in substance, do not.
 
 For kind "dropdown" or "radio", value must be one of the options, copied exactly. For kind "checkbox", value is
 "Yes" or "No". For kind "prompt" (a search box), value is a short term to search for: a country name, a source such
@@ -44,15 +49,23 @@ class FormAnswers(BaseModel):
     answers: list[Answer]
 
 
+class KnownAnswer(BaseModel):
+    question: str
+    answer: str
+
+
 Answerer = Callable[[str], FormAnswers]
 
 
-def answer_prompt(fields: list[FormField], profile: dict, cv_text: str, posting_title: str, company: str) -> str:
+def answer_prompt(fields: list[FormField], profile: dict, cv_text: str, posting_title: str, company: str,
+                  known: Sequence[KnownAnswer] = ()) -> str:
     notes = profile.get("notes", "")
     facts = {k: v for k, v in profile.items() if k != "notes" and v}
+    earlier = "\n".join(f"- Q: {k.question}\n  A: {k.answer}" for k in known) or "(none)"
     return (
         f"FORM PAGE for {posting_title} at {company}\n{json.dumps([f.model_dump() for f in fields], indent=1)}\n\n"
-        f"PROFILE\n{json.dumps(facts, indent=1)}\n\nNOTES\n{notes or '(none)'}\n\nCV\n{cv_text}\n\n"
+        f"PROFILE\n{json.dumps(facts, indent=1)}\n\nNOTES\n{notes or '(none)'}\n\n"
+        f"ANSWERS FROM EARLIER APPLICATIONS\n{earlier}\n\nCV\n{cv_text}\n\n"
         "Answer every field."
     )
 
@@ -71,10 +84,10 @@ def _normalise(field: FormField, value: str | None) -> str | None:
 
 
 def answer_fields(answerer: Answerer, fields: list[FormField], profile: dict, cv_text: str,
-                  posting_title: str = "", company: str = "") -> list[Answer]:
+                  posting_title: str = "", company: str = "", known: Sequence[KnownAnswer] = ()) -> list[Answer]:
     """One answer per field, options enforced here so a model's paraphrase never reaches the form."""
     by_id = {f.id: f for f in fields}
-    out = answerer(answer_prompt(fields, profile, cv_text, posting_title, company))
+    out = answerer(answer_prompt(fields, profile, cv_text, posting_title, company, known))
     seen: dict[str, Answer] = {}
     for a in out.answers:
         field = by_id.get(a.id)

@@ -80,7 +80,8 @@ def answer_endpoint(req: AnswerRequest) -> AnswerResponse:
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
     try:
-        answers = answer_fields(make_answerer(model), req.fields, req.profile, req.cv_text, req.posting_title, req.company)
+        answers = answer_fields(make_answerer(model), req.fields, req.profile, req.cv_text, req.posting_title, req.company,
+                                known=req.known_answers)
     except Exception as exc:
         log.exception("answer failed for %d fields at %s", len(req.fields), req.company)
         raise HTTPException(502, f"The model call failed: {exc}") from exc

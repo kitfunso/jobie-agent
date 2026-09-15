@@ -2,7 +2,12 @@
 const Workday = (() => {
   const ADVANCE_TEXT = /^(save and continue|next|continue)$/i;
   const FIELD_PREFIX = "formField-";
+  // Fields the My Information filler owns from the profile; the answer bank leaves these alone.
+  const PROFILE_IDS = new Set(["legalName--firstName", "legalName--lastName", "email", "country", "city", "addressLine1",
+    "postalCode", "phoneType", "countryPhoneCode", "phoneNumber", "extension", "linkedInAccount"]);
   const STEP_NAMES = [
+    // seen live 15-Sep: an expired session shows "Create Account/Sign In" in the progress bar with no signInContent container
+    [/sign in|create account/i, "signIn"],
     [/my information|contact information/i, "myInformation"],
     [/experience/i, "myExperience"],
     [/question/i, "questions"],
@@ -74,22 +79,21 @@ const Workday = (() => {
     return body.slice(0, 12000);
   }
 
-  // Company: tab title before the first separator; else the tenant segment of the path (/en-US/EDFTrading/details/...),
-  // which keeps its casing unlike the subdomain; else the subdomain. The panel field stays editable either way.
-  function _company() {
-    const title = document.title;
-    const dash = title.indexOf(" - ");
-    const pipe = title.indexOf(" | ");
-    const candidates = [dash, pipe].filter(i => i !== -1);
-    if (candidates.length) return title.slice(0, Math.min(...candidates)).trim();
-    const site = location.pathname.split("/").filter(Boolean).find(s => !/^[a-z]{2}(-[A-Z]{2})?$/.test(s));
-    return (site || location.hostname.split(".")[0] || "").trim();
+  // The tab title is the job title on edftrading.wd1 and "job title - logo alt text" on shell.wd3 (seen 15-Sep), so on a
+  // Workday host the tenant path segment (EDFTrading, ShellCareers) is the source; the title serves other hosts.
+  function companyOf({ hostname, pathname, title }) {
+    if (/myworkdayjobs\.com$/i.test(hostname)) {
+      const site = pathname.split("/").filter(Boolean).find(s => !/^[a-z]{2}(-[A-Z]{2})?$/.test(s)) || hostname.split(".")[0];
+      return site.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2").replace(/(\s+(careers?|jobs|page|site|portal|external))+$/i, "").trim();
+    }
+    const cut = [title.indexOf(" - "), title.indexOf(" | ")].filter(i => i !== -1);
+    return (cut.length ? title.slice(0, Math.min(...cut)) : title).trim();
   }
 
   function scrape() {
     return {
       title: _fieldFromPair(WD.posting.title),
-      company: _company(),
+      company: companyOf({ hostname: location.hostname, pathname: location.pathname, title: document.title }),
       location: _fieldFromPair(WD.posting.location),
       description: _description(),
       url: location.href,
@@ -125,10 +129,13 @@ const Workday = (() => {
     return typeof target === "string" ? document.querySelector(target) : target;
   }
 
+  // Workday's controlled inputs drop a value their handler rejects (seen live 15-Sep: text in a salary box), so an
+  // empty box after the set is a rejection, not a fill.
   function _setIfPresent(target, value, label, filled, skipped) {
     const el = _resolve(target);
     if (!el || !value) { skipped.push(label); return; }
     Fill.setValue(el, value);
+    if (!el.value) { skipped.push(`${label}: value "${value}" not accepted by the page`); return; }
     filled.push(label);
   }
 
@@ -159,7 +166,7 @@ const Workday = (() => {
   async function _describe(wrapper) {
     if (wrapper.querySelector('input[type="file"]')) return null;
     const id = wrapper.getAttribute("data-automation-id").slice(FIELD_PREFIX.length);
-    const base = { id, label: _label(wrapper), required: !!wrapper.querySelector(WD.widgets.required) };
+    const base = { id, label: _label(wrapper), required: !!wrapper.querySelector(WD.widgets.required), profile: PROFILE_IDS.has(id) };
     const radios = Array.from(wrapper.querySelectorAll('input[type="radio"]'));
     if (radios.length) {
       const on = radios.find(r => r.checked);
@@ -221,14 +228,17 @@ const Workday = (() => {
 
   async function applyAnswers(answers) {
     const filled = [];
+    const filledIds = [];
     const skipped = [];
     for (const a of answers || []) {
       if (a.value === null || a.value === undefined || !String(a.value).trim()) continue;
       const wrapper = document.querySelector(`[data-automation-id="${CSS.escape(FIELD_PREFIX + a.id)}"]`);
       if (!wrapper) { skipped.push(`${a.id}: no such field on this page`); continue; }
+      const before = filled.length;
       await _applyOne(wrapper, String(a.value), filled, skipped);
+      if (filled.length > before) filledIds.push(a.id);
     }
-    return { ok: true, filled, skipped };
+    return { ok: true, filled, filledIds, skipped };
   }
 
   function _matchOption(list, value) {
@@ -238,9 +248,18 @@ const Workday = (() => {
       || options.find(o => o.textContent.trim().toLowerCase().startsWith(lower));
   }
 
+  // The previous dropdown's list lingers after its option is clicked, and a click on the next button while it is there
+  // closes it instead of opening the new list (seen on shell.wd3, 15-Sep: the agent's valid pick came back "no option").
+  async function _settleLists() {
+    const open = () => Array.from(document.querySelectorAll(WD.widgets.dropdownList)).some(l => !l.matches(WD.widgets.selectedItemList));
+    const end = Date.now() + 1500;
+    while (Date.now() < end && open()) await Fill.sleep(100);
+  }
+
   // edftrading.wd1's buttons carry no aria-controls; the list is appended to the body once the button is clicked.
   async function _openList(button) {
     const listId = button.getAttribute("aria-controls");
+    await _settleLists();
     button.click();
     if (listId) return Fill.waitFor(`#${CSS.escape(listId)}`, 3000);
     const end = Date.now() + 3000;
@@ -302,12 +321,13 @@ const Workday = (() => {
     _setIfPresent(WD.fields.firstName, p.first_name, "first name", filled, skipped);
     _setIfPresent(WD.fields.lastName, p.last_name, "last name", filled, skipped);
     _setIfPresent(WD.fields.email, p.email, "email", filled, skipped);
+    _setIfPresent(WD.fields.addressLine1, p.address1, "address line 1", filled, skipped);
     _setIfPresent(WD.fields.city, p.city, "city", filled, skipped);
+    _setIfPresent(WD.fields.postalCode, p.postcode, "postal code", filled, skipped);
     await _fillDropdown(WD.fields.country, p.country, "country", filled, skipped);
     await _fillDropdown(WD.fields.phoneType, p.phone ? "Mobile" : "", "phone type", filled, skipped);
     await _fillPrompt(WD.fields.countryPhoneCode, p.country, "country phone code", filled, skipped);
     _setIfPresent(WD.fields.phoneNumber, p.phone, "phone", filled, skipped);
-    skipped.push("how did you hear about us: yours to answer");
     return { ok: true, filled, skipped };
   }
 
@@ -346,6 +366,10 @@ const Workday = (() => {
     const letterEl = document.querySelector(WD.fields.coverLetterTextarea);
     if (letterEl && data.cover_letter) { Fill.setValue(letterEl, data.cover_letter); filled.push("cover letter"); }
     else { skipped.push("cover letter: no field on this page"); }
+    // seen live 15-Sep: Workday rejects any other link here, so a GitHub URL in the profile box stays out of the form
+    const linkedin = (data.profile || {}).linkedin || "";
+    if (linkedin && !/linkedin\.com\//i.test(linkedin)) skipped.push("linkedin: profile value is not a linkedin.com URL");
+    else _setIfPresent(WD.fields.linkedin, linkedin, "linkedin", filled, skipped);
     skipped.push("work experience: use Autofill with Resume or fill by hand");
     return { ok: true, filled, skipped };
   }
@@ -392,5 +416,5 @@ const Workday = (() => {
     return { ok: true, clicked: text };
   }
 
-  return { isPosting, isApplication, scrape, fill, pageInfo, advance, unansweredRequired, formFields, applyAnswers };
+  return { isPosting, isApplication, scrape, companyOf, fill, pageInfo, advance, unansweredRequired, formFields, applyAnswers };
 })();

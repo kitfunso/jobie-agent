@@ -1,4 +1,4 @@
-from agent.answers import Answer, FormAnswers, FormField, answer_fields, answer_prompt
+from agent.answers import Answer, FormAnswers, FormField, KnownAnswer, answer_fields, answer_prompt
 
 FIELDS = [
     FormField(id="rightToWork", label="Right to work in the UK", kind="dropdown", required=True, options=["Yes", "No"]),
@@ -36,3 +36,17 @@ def test_prompt_keeps_notes_apart_from_profile_facts():
     text = answer_prompt(FIELDS, {"first_name": "Keith", "notes": "never worked at EDF", "linkedin": ""}, "CV BODY", "Analyst", "EDF")
     assert '"first_name": "Keith"' in text and '"linkedin"' not in text
     assert "NOTES\nnever worked at EDF" in text and "CV BODY" in text
+    assert "ANSWERS FROM EARLIER APPLICATIONS\n(none)" in text
+
+
+def test_earlier_answers_reach_the_prompt():
+    known = [KnownAnswer(question="What is your current notice period?", answer="3 months")]
+    text = answer_prompt(FIELDS, {}, "", "Analyst", "EDF", known)
+    assert "ANSWERS FROM EARLIER APPLICATIONS\n- Q: What is your current notice period?\n  A: 3 months" in text
+
+    def answerer(prompt: str) -> FormAnswers:
+        assert "A: 3 months" in prompt
+        return FormAnswers(answers=[])
+
+    out = answer_fields(answerer, FIELDS[:1], {}, "", known=known)
+    assert out[0].value is None

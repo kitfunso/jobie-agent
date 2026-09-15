@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-from agent.answers import Answer, FormField
+from agent.answers import Answer, FormField, KnownAnswer
 
 
 class Posting(BaseModel):
@@ -53,6 +53,7 @@ class AnswerRequest(BaseModel):
     posting_title: str = ""
     company: str = ""
     provider: Provider
+    known_answers: list[KnownAnswer] = Field(default_factory=list)
 
 
 class AnswerResponse(BaseModel):

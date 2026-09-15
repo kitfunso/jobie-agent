@@ -77,6 +77,8 @@
     </div>
     <!-- guess: no source for a Workday cover letter field on this step -->
     <textarea data-automation-id="coverLetter"></textarea>
+    <!-- verified on edftrading.wd1: the LinkedIn box on My Experience, which rejects any other kind of link -->
+    <div data-automation-id="formField-linkedInAccount"><label for="linkedInAccount"><span>LinkedIn</span></label><input id="linkedInAccount" type="text"></div>
   </div>
 </template>
 
@@ -90,6 +92,8 @@
       <button id="rightToWork" type="button" aria-haspopup="listbox" data-options="Yes,No">Select One</button>
     </div>
     <div data-automation-id="formField-notice"><label for="notice"><span>Notice period</span></label><input id="notice" type="text"></div>
+    <!-- seen live on edftrading.wd1: a salary box that keeps digits only and drops anything else -->
+    <div data-automation-id="formField-salary"><label for="salary"><span>Desired salary</span></label><input id="salary" type="text" oninput="if (!/^\d*$/.test(this.value)) this.value = ''"></div>
     <div data-automation-id="formField-previousWorker">
       <fieldset>
         <legend><label id="previousWorkerLabel"><span>Have you worked here before?<abbr aria-hidden="true">*</abbr></span></label></legend>
@@ -171,7 +175,8 @@
         var li = document.createElement("li");
         li.setAttribute("role", "option");
         li.textContent = text;
-        li.addEventListener("click", function () { button.textContent = text; ul.remove(); });
+        // as on shell.wd3: the list lingers for a moment after a pick, and a click elsewhere then closes it instead
+        li.addEventListener("click", function () { button.textContent = text; setTimeout(function () { ul.remove(); }, 250); });
         ul.appendChild(li);
       });
       document.body.appendChild(ul);

@@ -45,7 +45,8 @@ const WD = {
     fileUploadDropZone: '[data-automation-id="file-upload-drop-zone"]',
     fileUploadSuccess: '[data-automation-id="file-upload-successful"]',
     coverLetterTextarea: 'textarea[data-automation-id="coverLetter"]',
-    linkedin: 'input[data-automation-id="linkedinQuestion"]',
+    // verified on edftrading.wd1 15-Sep: the My Experience LinkedIn box sits in formField-linkedInAccount
+    linkedin: '[data-automation-id="formField-linkedInAccount"] input, input[data-automation-id="linkedinQuestion"]',
     website: 'div[data-automation-id^="websitePanelSet-"] input',
     howDidYouHear: '[data-automation-id="formField-source"] input, div[data-automation-id="formField-sourcePrompt"] input',
     workExperienceSection: 'div[data-automation-id="workExperienceSection"]',

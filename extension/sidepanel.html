@@ -41,6 +41,7 @@
               <option value="bedrock">bedrock</option>
               <option value="anthropic">anthropic</option>
               <option value="openai">openai</option>
+              <option value="nebius">nebius</option>
             </select>
           </div>
           <div class="field">
@@ -81,18 +82,48 @@
             <input id="country" type="text">
           </div>
           <div class="field">
+            <label for="address1">Address line 1</label>
+            <input id="address1" type="text">
+          </div>
+          <div class="field">
             <label for="city">City</label>
             <input id="city" type="text">
           </div>
           <div class="field">
+            <label for="postcode">Postcode</label>
+            <input id="postcode" type="text">
+          </div>
+          <div class="field">
             <label for="linkedin">LinkedIn</label>
-            <input id="linkedin" type="text">
+            <input id="linkedin" type="text" placeholder="https://www.linkedin.com/in/you (Workday rejects other links here)">
           </div>
           <div class="field">
             <label for="notes">Notes for application questions</label>
             <textarea id="notes" rows="4" placeholder="Facts the CV does not hold: how you find jobs (LinkedIn), right to work, notice period, salary range, employers you have worked for before"></textarea>
           </div>
           <button type="button" class="btn btn-secondary" id="save-profile">Save</button>
+        </fieldset>
+
+        <fieldset>
+          <legend>Answers</legend>
+          <p id="bank-summary" class="bank-summary">No application questions recorded yet. They are collected as you apply.</p>
+          <details id="bank-details" class="stage-details">
+            <summary>Questions and answers<span class="chevron" aria-hidden="true">&#9662;</span></summary>
+            <div class="details-body">
+              <div id="bank-list"></div>
+              <button type="button" class="btn btn-secondary" id="bank-save">Save</button>
+            </div>
+          </details>
+        </fieldset>
+
+        <fieldset>
+          <legend>Your data</legend>
+          <p class="note">Profile, answers and CV, never the API key. Save the file as seed.json in the extension folder on another machine and a fresh install starts with it.</p>
+          <button type="button" class="btn btn-secondary" id="data-export">Export data</button>
+          <div class="field">
+            <label for="data-import">Import a data file</label>
+            <input id="data-import" type="file" accept="application/json,.json">
+          </div>
         </fieldset>
 
         <fieldset>
@@ -187,6 +218,16 @@
 
         <ul id="run-log" class="run-log"></ul>
 
+        <div id="asks" class="asks" hidden>
+          <h3>Workday asks</h3>
+          <p class="note">Your profile, notes and CV do not answer these. Type each once; jobie-agent keeps the answers for later applications. Or add the fact to your profile or notes and click Refresh: the run reads the page again.</p>
+          <div id="asks-list"></div>
+          <div class="asks-actions">
+            <button type="button" class="btn btn-primary" id="asks-save">Save and continue</button>
+            <button type="button" class="btn btn-secondary" id="asks-refresh">Refresh</button>
+          </div>
+        </div>
+
         <div id="fill-results"></div>
       </div>
     </section>
@@ -199,6 +240,7 @@
   <span class="promise-text">Never presses Submit.</span>
 </footer>
 
+<script src="answer-bank.js"></script>
 <script src="sidepanel.js"></script>
 <script type="module" src="shader.js"></script>
 </body>

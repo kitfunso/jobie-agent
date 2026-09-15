@@ -8,11 +8,15 @@ const Fill = (() => {
     el.dispatchEvent(new Event("input", { bubbles: true }));
   }
 
+  // Workday commits a questionnaire answer in React's onBlur, which since React 17 hears focusout: a synthetic "blur"
+  // never produces one, a real blur() does (Save and Continue dropped synthetic-only text on edftrading.wd1, 15-Sep).
   // Search boxes keep their popup open only while focused, so they get type() alone and no blur.
   function setValue(el, value) {
+    el.focus();
     type(el, value);
     el.dispatchEvent(new Event("change", { bubbles: true }));
-    el.dispatchEvent(new Event("blur", { bubbles: true }));
+    if (document.activeElement === el) el.blur();
+    else el.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
   }
 
   function pressEnter(el) {

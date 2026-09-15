@@ -19,7 +19,7 @@ CONTENT_DIR = ROOT / "extension" / "content"
 FAKE_PAGE_URL = (ROOT / "extension" / "test" / "fake-workday.html").as_uri()
 PROFILE = {
     "first_name": "Keith", "last_name": "So", "email": "k@example.com", "phone": "07700900000",
-    "country": "United Kingdom", "city": "London", "linkedin": "",
+    "country": "United Kingdom", "address1": "1 Sample Street", "city": "London", "postcode": "EC1A 1AA", "linkedin": "",
 }
 
 
@@ -65,6 +65,19 @@ def test_scrape_posting(page):
     assert posting["location"] == "London, United Kingdom"
 
 
+def test_company_comes_from_the_tenant_path_on_workday_hosts(page):
+    load_step(page)
+    cases = [({"hostname": "shell.wd3.myworkdayjobs.com", "pathname": "/en-US/ShellCareers/job/London-York-Road/Energy-Analyst_R201954",
+               "title": "Energy Analyst - Yellow shell shape with a thick red outline"}, "Shell"),
+             ({"hostname": "edftrading.wd1.myworkdayjobs.com", "pathname": "/en-US/EDFTrading/job/Principal-Quantitative-Engineer_JR1001492",
+               "title": "Principal Quantitative Engineer"}, "EDF Trading"),
+             ({"hostname": "hkex.wd3.myworkdayjobs.com", "pathname": "/HKEXCareerPage/job/UK-London/Quantitative-Analyst_R004459",
+               "title": "Quantitative Analyst"}, "HKEX"),
+             ({"hostname": "", "pathname": "/C:/x/fake-workday.html", "title": "Sample Co - Senior Data Engineer"}, "Sample Co")]
+    for loc, want in cases:
+        assert page.evaluate("l => Workday.companyOf(l)", loc) == want
+
+
 def test_message_listener_answers_ping_and_scrape(page):
     load_step(page)
     ping = page.evaluate("new Promise(r => window.__listener({type: 'ping'}, {}, r))")
@@ -91,16 +104,22 @@ def test_fill_info_step(page):
     assert page.input_value("#firstName") == "Keith"
     assert page.input_value("#lastName") == "So"
     assert page.input_value("#city") == "London"
+    assert page.input_value("#addressLine1") == "1 Sample Street"
+    assert page.input_value("#postalCode") == "EC1A 1AA"
     assert page.input_value("#phoneNumber") == "07700900000"
     assert page.text_content("#country") == "United Kingdom"
     assert page.text_content("#phoneType") == "Mobile"
     chip = page.text_content('[data-automation-id="formField-countryPhoneCode"] [data-automation-id="selectedItem"]')
     assert chip == "United Kingdom (+44)"
-    assert {"first name", "last name", "city", "phone", "country", "phone type", "country phone code"}.issubset(set(result["filled"]))
-    # fake page has no email input on this step, so the fill skips it; not a resume/files skip on this step.
-    assert any("how did you hear" in s for s in result["skipped"])
-    # the one required field the profile cannot answer is what the panel reports before it presses Save and Continue
+    assert {"first name", "last name", "address line 1", "city", "postal code", "phone", "country", "phone type",
+            "country phone code"}.issubset(set(result["filled"]))
+    # fake page has no email input on this step, so the fill skips it
+    assert result["skipped"] == ["email"]
+    # the one required field the profile cannot answer is what the answer bank and the agent get next
     assert page.evaluate("Workday.pageInfo().unanswered") == ["How Did You Hear About Us?"]
+    fields = page.evaluate("async () => await Workday.formFields()")
+    owned = {f["id"]: f["profile"] for f in fields}
+    assert owned["legalName--firstName"] is True and owned["phoneNumber"] is True and owned["source"] is False
 
 
 def test_apply_pages_are_told_from_the_posting_by_the_progress_bar(page):
@@ -117,6 +136,11 @@ def test_sign_in_page_is_its_own_step(page):
     load_step(page, "signin", posting=True)
     assert page.evaluate("Workday.isPosting()") is False
     assert page.evaluate("Workday.pageInfo().step") == "signIn"
+    # an expired session on edftrading.wd1 shows only the progress bar item "Create Account/Sign In" (seen 15-Sep)
+    page.evaluate("""() => { document.querySelector('[data-automation-id="signInContent"]').removeAttribute('data-automation-id');
+                            const li = document.createElement('li'); li.setAttribute('data-automation-id', 'progressBarActiveStep');
+                            li.textContent = 'current step 1 of 5Create Account/Sign In'; document.body.prepend(li); }""")
+    assert page.evaluate("Workday.pageInfo().step") == "signIn"
 
 
 def test_form_fields_and_apply_answers_on_the_questions_page(page):
@@ -124,7 +148,7 @@ def test_form_fields_and_apply_answers_on_the_questions_page(page):
     fields = page.evaluate("async () => await Workday.formFields()")
     by_id = {f["id"]: f for f in fields}
     assert by_id["rightToWork"] == {"id": "rightToWork", "label": "Right to work in the UK", "kind": "dropdown",
-                                    "required": True, "options": ["Yes", "No"], "value": ""}
+                                    "required": True, "options": ["Yes", "No"], "value": "", "profile": False}
     assert by_id["previousWorker"]["kind"] == "radio" and by_id["previousWorker"]["options"] == ["Yes", "No"]
     assert by_id["consent"]["kind"] == "checkbox"
     assert by_id["notice"]["required"] is False
@@ -140,7 +164,26 @@ def test_form_fields_and_apply_answers_on_the_questions_page(page):
     assert page.is_checked("#consent")
     assert page.evaluate("Workday.unansweredRequired()") == []
     assert set(result["filled"]) == {"Years of experience", "Right to work in the UK", "Have you worked here before?", "I agree to the privacy notice"}
+    assert result["filledIds"] == ["yearsExperience", "rightToWork", "previousWorker", "consent"]
     assert any("nope" in s for s in result["skipped"])
+
+
+def test_two_dropdowns_in_a_row_each_open_their_own_list(page):
+    load_step(page, "info")
+    answers = [{"id": "country", "value": "Germany"}, {"id": "phoneType", "value": "Mobile"}]
+    result = page.evaluate("async (a) => await Workday.applyAnswers(a)", answers)
+    assert result["filledIds"] == ["country", "phoneType"], result["skipped"]
+    assert page.text_content("#phoneType") == "Mobile"
+
+
+def test_a_value_the_page_drops_is_reported_as_skipped(page):
+    load_step(page, "questions", posting=True)
+    result = page.evaluate("async (a) => await Workday.applyAnswers(a)", [{"id": "salary", "value": "TBC"}])
+    assert result["filled"] == [] and result["filledIds"] == []
+    assert result["skipped"] == ['Desired salary: value "TBC" not accepted by the page']
+    result = page.evaluate("async (a) => await Workday.applyAnswers(a)", [{"id": "salary", "value": "95000"}])
+    assert result["filledIds"] == ["salary"]
+    assert page.input_value("#salary") == "95000"
 
 
 def test_fill_experience_step(page, tmp_path):
@@ -156,6 +199,16 @@ def test_fill_experience_step(page, tmp_path):
     assert len(rows) >= 1
     letter_value = page.input_value('textarea[data-automation-id="coverLetter"]')
     assert "Hello" in letter_value
+
+
+def test_linkedin_box_takes_only_a_linkedin_url(page):
+    load_step(page, "experience")
+    result = page.evaluate("async (d) => await Workday.fill(d)", {"profile": {"linkedin": "https://github.com/someone"}, "cover_letter": "", "files": []})
+    assert page.input_value("#linkedInAccount") == ""
+    assert "linkedin: profile value is not a linkedin.com URL" in result["skipped"]
+    result = page.evaluate("async (d) => await Workday.fill(d)", {"profile": {"linkedin": "https://www.linkedin.com/in/someone"}, "cover_letter": "", "files": []})
+    assert page.input_value("#linkedInAccount") == "https://www.linkedin.com/in/someone"
+    assert "linkedin" in result["filled"]
 
 
 def test_page_info_and_advance_report_workday_errors(page):
